@@ -60,7 +60,7 @@ export default function App() {
   const celsiusToFahrenheit = (celsius: number): number => (celsius * 9/5) + 32;
 
   const handleGetStarted = () => {
-    Alert.alert('Welcome!', 'Welcome to ClimaGuard! 🌡️\n\nStart monitoring your environment with real-time alerts and insights.');
+    Alert.alert('Welcome!', 'Welcome to ClimaGuard! 🛡️\n\nStart monitoring your environment with real-time alerts and insights.');
   };
 
   const handleViewSensors = () => {
@@ -78,7 +78,7 @@ export default function App() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
-            🌡️ ClimaGuard
+            🛡️ ClimaGuard
           </Text>
           <Text style={styles.subtitle}>
             Mobile Climate Monitor

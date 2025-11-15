@@ -90,11 +90,11 @@ export default function MapEngineComponent({
     <div
       id={containerId}
       ref={containerRef}
-      className={`${className} w-full h-full`}
-      style={{ ...style, minHeight: '100%', minWidth: '100%', position: 'relative', zIndex: 0 }}
+      className={className}
+      style={style}
     >
       {!isReady && (
-        <div className="flex items-center justify-center h-full w-full bg-gray-100 dark:bg-gray-800" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+        <div className="flex items-center justify-center h-full w-full bg-gray-100 dark:bg-gray-800">
           <p className="text-gray-600 dark:text-gray-400">Loading Map...</p>
         </div>
       )}

@@ -178,13 +178,12 @@ export default function MapComponent() {
   };
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', minHeight: '500px', height: '500px' }}>
-      <MapContainer 
-        center={mauritiusCenter} 
-        zoom={10} 
-        style={{ height: '100%', width: '100%', minHeight: '100%', minWidth: '100%' }}
-        className="z-0"
-      >
+    <MapContainer 
+      center={mauritiusCenter} 
+      zoom={10} 
+      style={{ height: '100%', width: '100%' }}
+      className="z-0"
+    >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -383,6 +382,5 @@ export default function MapComponent() {
         </div>
       )}
     </MapContainer>
-    </div>
   );
 }

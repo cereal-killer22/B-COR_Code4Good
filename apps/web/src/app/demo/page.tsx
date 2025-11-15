@@ -143,7 +143,7 @@ export default function DemoPage() {
       subtitle: 'Interactive Risk Assessment',
       content: (
         <div className="space-y-4">
-          <ClimaGuardMap type="overview" />
+          <ClimaGuardMap />
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-red-100 p-4 rounded-lg text-center">
               <div className="text-2xl font-bold text-red-600">96%</div>
@@ -317,7 +317,7 @@ export default function DemoPage() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-blue-600">🌡️ ClimaGuard</h1>
+              <h1 className="text-2xl font-bold text-blue-600">🛡️ ClimaGuard</h1>
               <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
                 Code4Good 2024 Demo
               </div>

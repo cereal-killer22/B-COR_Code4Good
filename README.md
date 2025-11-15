@@ -1,4 +1,4 @@
-# 🌡️ ClimaGuard
+# 🛡️ ClimaGuard
 
 ClimaGuard is an intelligent cross-platform climate monitoring system designed to predict, visualize, and alert communities about environmental risks. Built with a modern monorepo structure, it provides real-time climate monitoring across web and mobile platforms.
 

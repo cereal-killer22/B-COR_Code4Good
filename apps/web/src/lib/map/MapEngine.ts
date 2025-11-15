@@ -67,11 +67,6 @@ function getDefaultIcon(): L.Icon {
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    tooltipAnchor: [16, -28],
-    shadowSize: [41, 41],
   });
 }
 
@@ -200,28 +195,6 @@ export function createBaseMap(
     className,
     style,
   } = options;
-
-  // Get the container element
-  const container = typeof containerId === 'string' 
-    ? document.getElementById(containerId)
-    : containerId;
-
-  if (!container) {
-    throw new Error(`Map container not found: ${typeof containerId === 'string' ? containerId : 'HTMLElement'}`);
-  }
-
-  // Check if container already has a map instance
-  // Leaflet stores the map instance on the container element
-  if ((container as any)._leaflet_id) {
-    // Container already has a map, remove it first
-    const existingMap = (container as any)._leaflet;
-    if (existingMap && existingMap.remove) {
-      existingMap.remove();
-    }
-    // Clear the leaflet ID
-    delete (container as any)._leaflet_id;
-    delete (container as any)._leaflet;
-  }
 
   // Create map instance with proper CRS (WGS84 - EPSG:4326)
   // Leaflet automatically handles WGS84 → Web Mercator (EPSG:3857) projection
@@ -518,7 +491,7 @@ export function addMarker(
   const L = getLeaflet();
 
   const marker = L.marker(coords, {
-    icon: icon,
+    icon: options.icon,
     title: options.title,
     alt: options.alt,
     opacity: options.opacity,

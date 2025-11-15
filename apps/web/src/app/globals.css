@@ -448,8 +448,6 @@ textarea:focus-visible {
   right: 1rem;
   left: auto;
   transform: none;
-  width: 420px;
-  max-width: 90vw;
 }
 
 /* Mobile: centered */
@@ -459,8 +457,6 @@ textarea:focus-visible {
     left: 50%;
     right: auto;
     transform: translate(-50%, -50%);
-    width: 90vw;
-    max-width: 420px;
   }
 }
 
@@ -576,9 +572,17 @@ textarea:focus-visible {
   }
 }
 
-/* Color-blind filter application */
-[data-color-blind="protanopia"] *,
-[data-color-blind="deuteranopia"] *,
-[data-color-blind="tritanopia"] * {
-  filter: inherit;
+/* Hide scrollbar for horizontal scrollable elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Smooth scrolling for horizontal scroll */
+.scrollbar-hide {
+  scroll-behavior: smooth;
 }
