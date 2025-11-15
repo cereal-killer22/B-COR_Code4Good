@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ClimaGuardMap from '@/components/ClimaGuardMap';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -13,6 +13,9 @@ import BleachingRiskPanel from '@/components/BleachingRiskPanel';
 import CoastalRiskWidget from '@/components/CoastalRiskWidget';
 import AcidificationTracker from '@/components/AcidificationTracker';
 import { Card, StatusBadge, MetricCard, Button, PageHeader, SectionHeader } from '@/components/ui';
+import { useAutoRead } from '@/hooks/useAutoRead';
+import { useTextToSpeech } from '@/contexts/TextToSpeechContext';
+import MicIcon from '@/components/MicIcon';
 
 // Real-time data hooks (will fetch live data)
 const useLiveCycloneData = () => {
@@ -245,8 +248,39 @@ export default function Dashboard() {
     }
   };
 
+  const { isEnabled, autoReadEnabled, speak } = useTextToSpeech();
+  const previousAlertsRef = React.useRef<Set<string>>(new Set());
+
+  // Auto-read page content on load
+  const dashboardSummary = `ClimaGuard Dashboard. AI-Powered Climate Risk Platform for Mauritius. ${cycloneData.category > 0 ? `Active Cyclone: ${cycloneData.name}, Category ${cycloneData.category}.` : 'No active cyclones.'} ${weatherData ? `Temperature: ${Math.round(weatherData.temperature)} degrees Celsius.` : ''} ${floodData ? `Flood Risk: ${floodData.riskLevel}.` : ''}`;
+  
+  useAutoRead({
+    text: dashboardSummary,
+    delay: 1500,
+    readOnce: true,
+    condition: !loading && (weatherData || floodData || cycloneData),
+  });
+
+  // Auto-read new alerts
+  React.useEffect(() => {
+    if (!isEnabled || !autoReadEnabled || !alertData.length) return;
+
+    alertData.forEach((alert) => {
+      if (!previousAlertsRef.current.has(alert.id)) {
+        previousAlertsRef.current.add(alert.id);
+        
+        // Read critical/high priority alerts immediately
+        if (alert.level.toLowerCase() === 'extreme' || alert.level.toLowerCase() === 'high') {
+          const alertText = `${alert.type} alert. ${alert.level} risk in ${alert.zone}. ${alert.message}`;
+          setTimeout(() => speak(alertText), 2000);
+        }
+      }
+    });
+  }, [alertData, isEnabled, autoReadEnabled, speak]);
+
   return (
     <div className="min-h-screen bg-theme" style={{ background: 'linear-gradient(to bottom right, var(--background-secondary), var(--background))' }}>
+
       {/* Header */}
       <PageHeader 
         title="🌡️ ClimaGuard" 
@@ -390,33 +424,64 @@ export default function Dashboard() {
               <div className="space-y-6">
                 
                 {/* Current Cyclone Status */}
-                <Card>
-                  <SectionHeader 
-                    title="🌀 Active Cyclone" 
-                    className="mb-4"
-                  />
+                <Card className="relative">
+                  <div className="mb-4">
+                    <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                      🌀 Active Cyclone
+                      <MicIcon 
+                        text={`Active Cyclone: ${cycloneData.name}, Category ${cycloneData.category}`}
+                        size="small" 
+                      />
+                    </h2>
+                  </div>
                   <div className="space-y-4">
                     <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-900">{cycloneData.name}</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-2">
+                        {cycloneData.name}
+                        <MicIcon 
+                          text={`Active Cyclone: ${cycloneData.name}, Category ${cycloneData.category}. Wind Speed: ${cycloneData.windSpeed} kilometers per hour. Pressure: ${cycloneData.pressure} hectopascals. Distance: ${cycloneData.distance} kilometers. Estimated time of arrival: ${cycloneData.eta} hours.`}
+                          size="small" 
+                        />
+                      </h3>
                       <StatusBadge status="danger" size="lg">
                         Category {cycloneData.category}
                       </StatusBadge>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-gray-600">Wind Speed</div>
+                      <div className="bg-gray-50 rounded-lg p-3 relative">
+                        <div className="text-gray-600">
+                          Wind Speed
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <MicIcon text={`Wind Speed: ${cycloneData.windSpeed} kilometers per hour`} size="small" />
+                        </div>
                         <div className="font-semibold text-lg">{cycloneData.windSpeed} km/h</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-gray-600">Pressure</div>
+                      <div className="bg-gray-50 rounded-lg p-3 relative">
+                        <div className="text-gray-600 flex items-center gap-1">
+                          Pressure
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <MicIcon text={`Pressure: ${cycloneData.pressure} hectopascals`} size="small" />
+                        </div>
                         <div className="font-semibold text-lg">{cycloneData.pressure} hPa</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-gray-600">Distance</div>
+                      <div className="bg-gray-50 rounded-lg p-3 relative">
+                        <div className="text-gray-600 flex items-center gap-1">
+                          Distance
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <MicIcon text={`Distance: ${cycloneData.distance} kilometers`} size="small" />
+                        </div>
                         <div className="font-semibold text-lg">{cycloneData.distance} km</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="text-gray-600">ETA</div>
+                      <div className="bg-gray-50 rounded-lg p-3 relative">
+                        <div className="text-gray-600 flex items-center gap-1">
+                          ETA
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <MicIcon text={`Estimated time of arrival: ${cycloneData.eta} hours`} size="small" />
+                        </div>
                         <div className="font-semibold text-lg">{cycloneData.eta}h</div>
                       </div>
                     </div>
@@ -496,8 +561,14 @@ export default function Dashboard() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{getAlertIcon(alert.type)}</span>
-                            <div>
-                              <div className="font-semibold text-gray-900">{alert.zone}</div>
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900 flex items-center gap-2">
+                                {alert.zone}
+                                <MicIcon 
+                                  text={`${alert.type} alert. ${alert.level} risk in ${alert.zone}. ${alert.message}`} 
+                                  size="small" 
+                                />
+                              </div>
                               <div className="text-sm text-gray-600">{alert.message}</div>
                             </div>
                           </div>

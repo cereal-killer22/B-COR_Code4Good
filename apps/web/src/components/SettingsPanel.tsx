@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import FontSizeControl from './FontSizeControl';
 import HighContrastToggle from './HighContrastToggle';
 import ColorBlindFilter from './ColorBlindFilter';
+import TTSToggle from './TTSToggle';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -274,6 +275,11 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
 
           {/* High Contrast Toggle */}
           <HighContrastToggle />
+
+          {/* Text-to-Speech Toggle */}
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
+            <TTSToggle />
+          </div>
 
           {/* Color-Blind Filter */}
           <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>

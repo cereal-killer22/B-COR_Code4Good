@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, StatusBadge, MetricCard, Button } from '@/components/ui';
+import MicIcon from '@/components/MicIcon';
 
 export default function Home() {
   const [weatherData, setWeatherData] = useState<any>(null);
@@ -61,11 +62,16 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center py-16">
           <div className="mb-8">
-            <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6">
+            <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6 flex items-center justify-center gap-3">
               🌡️ ClimaGuard
+              <MicIcon 
+                text="ClimaGuard. AI-Powered Climate Risk Platform. Protecting Mauritius from climate disasters with advanced prediction technology." 
+                size="medium" 
+              />
             </h1>
-            <h2 className="text-3xl font-semibold text-theme mb-4">
+            <h2 className="text-3xl font-semibold text-theme mb-4 flex items-center justify-center gap-2">
               AI-Powered Climate Risk Platform
+              <MicIcon text="AI-Powered Climate Risk Platform" size="small" />
             </h2>
             <p className="text-xl text-theme-secondary mb-2">
               Protecting Mauritius from climate disasters with advanced prediction technology
@@ -125,7 +131,10 @@ export default function Home() {
             <Card className="hover:shadow-xl transition-all duration-300">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🔐</div>
-                <h3 className="text-lg font-semibold text-theme mb-2">Authentication</h3>
+                <h3 className="text-lg font-semibold text-theme mb-2 flex items-center justify-center gap-2">
+                  Authentication
+                  <MicIcon text="Authentication. Secure access to your climate data" size="small" />
+                </h3>
                 <p className="text-sm text-theme-secondary">Secure access to your climate data</p>
               </div>
             </Card>
@@ -134,7 +143,10 @@ export default function Home() {
             <Card className="hover:shadow-xl transition-all duration-300 border-2 border-blue-200">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌀</div>
-                <h3 className="text-lg font-semibold text-blue-700 mb-2">Live Dashboard</h3>
+                <h3 className="text-lg font-semibold text-blue-700 mb-2 flex items-center justify-center gap-2">
+                  Live Dashboard
+                  <MicIcon text="Live Dashboard. Real-time climate monitoring" size="small" />
+                </h3>
                 <p className="text-sm text-blue-600">Real-time climate monitoring</p>
               </div>
             </Card>
@@ -143,7 +155,10 @@ export default function Home() {
             <Card className="hover:shadow-xl transition-all duration-300 border-2 border-cyan-200">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌡️</div>
-                <h3 className="text-lg font-semibold text-cyan-700 mb-2">ClimaWise</h3>
+                <h3 className="text-lg font-semibold text-cyan-700 mb-2 flex items-center justify-center gap-2">
+                  ClimaWise
+                  <MicIcon text="ClimaWise. Cyclone, Flood and Ocean AI" size="small" />
+                </h3>
                 <p className="text-sm text-cyan-600">Cyclone, Flood & Ocean AI</p>
               </div>
             </Card>
@@ -152,7 +167,10 @@ export default function Home() {
             <Card className="hover:shadow-xl transition-all duration-300">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
-                <h3 className="text-lg font-semibold text-theme mb-2">Interactive Demo</h3>
+                <h3 className="text-lg font-semibold text-theme mb-2 flex items-center justify-center gap-2">
+                  Interactive Demo
+                  <MicIcon text="Interactive Demo. Explore AI predictions" size="small" />
+                </h3>
                 <p className="text-sm text-theme-secondary">Explore AI predictions</p>
               </div>
             </Card>
@@ -162,8 +180,12 @@ export default function Home() {
         {/* Features Grid */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card>
-            <h3 className="text-xl font-bold text-orange-600 mb-3">
+            <h3 className="text-xl font-bold text-orange-600 mb-3 flex items-center gap-2">
               🌀 Cyclone Formation Prediction
+              <MicIcon 
+                text="Cyclone Formation Prediction. AI-powered predictions showing where and when new cyclones will form with expected dates. Real-time formation analysis and early warning." 
+                size="small" 
+              />
             </h3>
             <p className="text-theme mb-4">
               AI-powered predictions showing where and when new cyclones will form with expected dates.
@@ -176,8 +198,12 @@ export default function Home() {
           </Card>
 
           <Card>
-            <h3 className="text-xl font-bold text-purple-600 mb-3">
+            <h3 className="text-xl font-bold text-purple-600 mb-3 flex items-center gap-2">
               💧 Humidity Control
+              <MicIcon 
+                text={`Humidity Control. Track humidity levels and receive notifications when levels reach critical thresholds. Current: ${currentHumidity} percent. Status: Optimal.`} 
+                size="small" 
+              />
             </h3>
             <p className="text-theme mb-4">
               Track humidity levels and receive notifications when levels reach critical thresholds.
@@ -190,8 +216,12 @@ export default function Home() {
           </Card>
 
           <Card>
-            <h3 className="text-xl font-bold text-green-600 mb-3">
+            <h3 className="text-xl font-bold text-green-600 mb-3 flex items-center gap-2">
               📊 Analytics Dashboard
+              <MicIcon 
+                text="Analytics Dashboard. Historical data analysis, trend visualization, and predictive insights. Cross-platform support for web and mobile." 
+                size="small" 
+              />
             </h3>
             <p className="text-theme mb-4">
               Historical data analysis, trend visualization, and predictive insights.
@@ -206,8 +236,9 @@ export default function Home() {
 
         {/* Action Buttons */}
         <Card className="mb-8">
-          <h2 className="text-2xl font-bold text-center mb-6">
+          <h2 className="text-2xl font-bold text-center mb-6 flex items-center justify-center gap-2">
             Get Started with Climate Monitoring
+            <MicIcon text="Get Started with Climate Monitoring" size="small" />
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -231,26 +262,41 @@ export default function Home() {
 
         {/* Alert Thresholds */}
         <Card>
-          <h2 className="text-2xl font-bold mb-6">Default Alert Thresholds</h2>
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            Default Alert Thresholds
+            <MicIcon text="Default Alert Thresholds. Critical Hot: 40 degrees Celsius. Hot: 30 degrees Celsius. Cold: 5 degrees Celsius. Critical Cold: negative 10 degrees Celsius." size="small" />
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
               <div className="text-2xl mb-2">🔥</div>
-              <div className="font-bold text-red-600">Critical Hot</div>
+              <div className="font-bold text-red-600 flex items-center justify-center gap-2">
+                Critical Hot
+                <MicIcon text="Critical Hot: 40 degrees Celsius" size="small" />
+              </div>
               <div className="text-sm text-gray-600 dark:text-gray-300">40°C</div>
             </div>
             <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
               <div className="text-2xl mb-2">☀️</div>
-              <div className="font-bold text-orange-600">Hot</div>
+              <div className="font-bold text-orange-600 flex items-center justify-center gap-2">
+                Hot
+                <MicIcon text="Hot: 30 degrees Celsius" size="small" />
+              </div>
               <div className="text-sm text-gray-600">30°C</div>
             </div>
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <div className="text-2xl mb-2">❄️</div>
-              <div className="font-bold text-blue-600">Cold</div>
+              <div className="font-bold text-blue-600 flex items-center justify-center gap-2">
+                Cold
+                <MicIcon text="Cold: 5 degrees Celsius" size="small" />
+              </div>
               <div className="text-sm text-gray-600">5°C</div>
             </div>
             <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <div className="text-2xl mb-2">🧊</div>
-              <div className="font-bold text-blue-800">Critical Cold</div>
+              <div className="font-bold text-blue-800 flex items-center justify-center gap-2">
+                Critical Cold
+                <MicIcon text="Critical Cold: negative 10 degrees Celsius" size="small" />
+              </div>
               <div className="text-sm text-gray-600">-10°C</div>
             </div>
           </div>

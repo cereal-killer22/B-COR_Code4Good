@@ -4,8 +4,10 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { HighContrastProvider } from "@/contexts/HighContrastContext";
+import { TextToSpeechProvider } from "@/contexts/TextToSpeechContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import SettingsIcon from "@/components/SettingsIcon";
+import ReadAllButton from "@/components/ReadAllButton";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,9 +31,12 @@ export default function RootLayout({
         <ThemeProvider>
           <FontSizeProvider>
             <HighContrastProvider>
-              {children}
-              <SettingsIcon />
-              <ThemeToggle />
+              <TextToSpeechProvider>
+                {children}
+                <SettingsIcon />
+                <ThemeToggle />
+                <ReadAllButton />
+              </TextToSpeechProvider>
             </HighContrastProvider>
           </FontSizeProvider>
         </ThemeProvider>
