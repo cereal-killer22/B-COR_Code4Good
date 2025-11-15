@@ -4,7 +4,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import type { SustainableFishingMetrics } from '@climaguard/shared/types/ocean';ma
+import type { SustainableFishingMetrics } from '@climaguard/shared/types/ocean';
 
 export interface FishingVessel {
   id: string;
