@@ -1,5 +1,7 @@
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ScrollView, Alert, Text, TouchableOpacity } from 'react-native';
+import ChatScreen from './screens/ChatScreen';
 
 // Simple mobile-specific components
 const Card = ({ children, style = {} }: { children: React.ReactNode; style?: any }) => (
@@ -24,8 +26,24 @@ const Button = ({ title, onPress, variant = 'primary' }: {
 );
 
 export default function App() {
+  const [showChat, setShowChat] = useState(false);
   const sampleTemp = 24;
   const sampleHumidity = 65;
+
+  // Show chat screen if enabled
+  if (showChat) {
+    return (
+      <View style={styles.container}>
+        <ChatScreen />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setShowChat(false)}
+        >
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Simple date formatting
   const formatDate = (date: Date): string => {
@@ -156,6 +174,11 @@ export default function App() {
               title="View Alerts"
               onPress={handleViewAlerts}
               variant="secondary"
+            />
+            <Button
+              title="💬 AI Chat Assistant"
+              onPress={() => setShowChat(true)}
+              variant="primary"
             />
           </View>
         </Card>
@@ -303,5 +326,25 @@ const styles = StyleSheet.create({
   },
   buttonTextSecondary: {
     color: '#007AFF',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

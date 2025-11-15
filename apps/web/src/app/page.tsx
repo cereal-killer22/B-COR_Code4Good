@@ -42,12 +42,12 @@ export default function Home() {
 
   const celsiusToFahrenheit = (celsius: number) => (celsius * 9/5) + 32;
 
-  const handleGetStarted = () => {
-    alert('Welcome to ClimaGuard! 🌡️');
-  };
-
   const handleViewDashboard = () => {
     window.location.href = '/dashboard';
+  };
+
+  const handleChat = () => {
+    window.location.href = '/chat';
   };
 
   const checkWeather = () => {
@@ -80,8 +80,8 @@ export default function Home() {
             <Button size="lg" onClick={handleViewDashboard} icon="📊">
               View Dashboard
             </Button>
-            <Button variant="outline" size="lg" onClick={handleGetStarted} icon="🚀">
-              Get Started
+            <Button variant="outline" size="lg" onClick={handleChat} icon="🌡️">
+              ClimaWise
             </Button>
           </div>
         </div>
@@ -139,21 +139,21 @@ export default function Home() {
               </div>
             </Card>
           </div>
+          <div className="group cursor-pointer" onClick={() => window.location.href = '/chat'}>
+            <Card className="hover:shadow-xl transition-all duration-300 border-2 border-cyan-200">
+              <div className="text-center">
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌡️</div>
+                <h3 className="text-lg font-semibold text-cyan-700 mb-2">ClimaWise</h3>
+                <p className="text-sm text-cyan-600">Cyclone, Flood & Ocean AI</p>
+              </div>
+            </Card>
+          </div>
           <div className="group cursor-pointer" onClick={() => window.location.href = '/demo'}>
             <Card className="hover:shadow-xl transition-all duration-300">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
                 <h3 className="text-lg font-semibold text-theme mb-2">Interactive Demo</h3>
                 <p className="text-sm text-theme-secondary">Explore AI predictions</p>
-              </div>
-            </Card>
-          </div>
-          <div className="group cursor-pointer" onClick={checkWeather}>
-            <Card className="hover:shadow-xl transition-all duration-300">
-              <div className="text-center">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🔄</div>
-                <h3 className="text-lg font-semibold text-theme mb-2">Refresh Data</h3>
-                <p className="text-sm text-theme-secondary">Update weather conditions</p>
               </div>
             </Card>
           </div>
@@ -211,16 +211,16 @@ export default function Home() {
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
-              onClick={handleGetStarted}
+              onClick={handleViewDashboard}
               variant="primary"
             >
-              Start Monitoring
+              View Dashboard
             </Button>
             <Button
-              onClick={handleViewDashboard}
+              onClick={handleChat}
               variant="secondary"
             >
-              View Dashboard
+              Chat with ClimaWise
             </Button>
           </div>
           

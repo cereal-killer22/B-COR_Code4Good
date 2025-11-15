@@ -164,6 +164,14 @@ const getDataSourcesStatus = (weatherData: any, floodData: any, stormSurgeData: 
   return sources;
 };
 
+type TabItem = {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  href?: string;
+};
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAlerts, setShowAlerts] = useState(true);
@@ -249,31 +257,53 @@ export default function Dashboard() {
       <div className="bg-card border-theme border-b shadow-sm" style={{ borderColor: 'var(--card-border)' }}>
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex space-x-1">
-            {[
+            {([
               { id: 'overview', label: 'Overview', icon: '📊', description: 'System Status' },
               { id: 'cyclone', label: 'CycloneGuard', icon: '🌀', description: 'Tropical Cyclones' },
               { id: 'flood', label: 'FloodSense', icon: '🌊', description: 'Flood Monitoring' },
               { id: 'ocean-health', label: 'Ocean Health', icon: '🌊', description: 'SDG 14 - Marine Protection' },
               { id: 'alerts', label: 'Alerts', icon: '🚨', description: 'Active Warnings' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-6 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
-                  activeTab === tab.id
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500 dark:border-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{tab.icon}</span>
-                  <div className="text-left">
-                    <div className="font-semibold">{tab.label}</div>
-                    <div className="text-xs opacity-75">{tab.description}</div>
+              { id: 'chat', label: 'ClimaWise', icon: '🌡️', description: 'Cyclone, Flood & Ocean AI', href: '/chat' },
+            ] as TabItem[]).map((tab) => {
+              if (tab.href) {
+                return (
+                  <Link key={tab.id} href={tab.href}>
+                    <div
+                      className={`py-3 px-6 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
+                        'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{tab.icon}</span>
+                        <div className="text-left">
+                          <div className="font-semibold">{tab.label}</div>
+                          <div className="text-xs opacity-75">{tab.description}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-3 px-6 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
+                    activeTab === tab.id
+                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500 dark:border-blue-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{tab.icon}</span>
+                    <div className="text-left">
+                      <div className="font-semibold">{tab.label}</div>
+                      <div className="text-xs opacity-75">{tab.description}</div>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </nav>
         </div>
       </div>
