@@ -8,25 +8,40 @@
  * - GeoJSON overlays, heatmaps, polygons, tracks, and markers
  * - Consistent tile sources
  * - Proper CRS and bounding boxes for Mauritius
+ * 
+ * NOTE: This module is client-side only. Leaflet requires browser APIs.
  */
 
-import L from 'leaflet';
-import type { Map as LeafletMap } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+'use client';
 
-// Fix for default markers in React Leaflet
-// This must be done before any marker creation
-if (typeof window !== 'undefined') {
-  // Ensure Icon.Default exists
-  if (L.Icon.Default) {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
+// Only import Leaflet in browser environment - lazy loaded
+let L: typeof import('leaflet').default | null = null;
+
+// Lazy getter for Leaflet - loads on first use
+const getLeaflet = (): typeof import('leaflet').default => {
+  if (typeof window === 'undefined') {
+    throw new Error('Leaflet can only be used in the browser');
   }
-}
+  if (!L) {
+    // Use require for synchronous loading in browser
+    L = require('leaflet');
+    require('leaflet/dist/leaflet.css');
+    
+    // Fix for default markers in React Leaflet
+    if (L && L.Icon && L.Icon.Default) {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      });
+    }
+  }
+  return L;
+};
+
+// Type imports are safe for SSR
+import type { Map as LeafletMap } from 'leaflet';
 
 /**
  * Get default icon for markers
@@ -62,7 +77,7 @@ function getDefaultIcon(): L.Icon {
 
 // Mauritius default coordinates and bounds
 export const MAURITIUS_CENTER: [number, number] = [-20.2, 57.5];
-export const MAURITIUS_BOUNDS: L.LatLngBoundsExpression = [
+export const MAURITIUS_BOUNDS: [[number, number], [number, number]] = [
   [-20.6, 57.2], // Southwest
   [-19.8, 57.9]  // Northeast
 ];
@@ -210,6 +225,8 @@ export function createBaseMap(
 
   // Create map instance with proper CRS (WGS84 - EPSG:4326)
   // Leaflet automatically handles WGS84 → Web Mercator (EPSG:3857) projection
+  // All spatial data must use WGS84 (EPSG:4326) coordinates
+  const L = getLeaflet();
   const map = L.map(container, {
     center,
     zoom,
@@ -224,9 +241,12 @@ export function createBaseMap(
     keyboard,
     zoomControl,
     attributionControl,
-    crs: L.CRS.EPSG3857, // Web Mercator (default, ensures proper tile alignment)
+    crs: L.CRS.EPSG3857 as any, // Web Mercator (EPSG:3857) - ensures proper tile alignment
     worldCopyJump: false, // Prevent map from wrapping
   });
+  
+  // Ensure all GeoJSON and overlays use WGS84 (EPSG:4326)
+  // Leaflet automatically converts WGS84 to Web Mercator for display
 
   // Add tile layer with proper attribution
   L.tileLayer(tileUrl, {
@@ -235,10 +255,18 @@ export function createBaseMap(
     minZoom,
   }).addTo(map);
 
-  // Set bounds if provided
+  // Set bounds if provided (always use Mauritius bounds for consistency)
   if (bounds) {
-    map.fitBounds(bounds, { padding: [20, 20] });
+    map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 });
+  } else {
+    // Default to Mauritius bounds if not specified
+    map.fitBounds(MAURITIUS_BOUNDS, { padding: [20, 20], maxZoom: 15 });
   }
+  
+  // Force invalidateSize after initial setup
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 100);
 
   // Apply custom styling if provided
   if (className && typeof containerId === 'string') {
@@ -284,6 +312,7 @@ export function loadGeoJSONLayer(
     ? style 
     : () => defaultStyle;
 
+  const L = getLeaflet();
   const geoJSONLayer = L.geoJSON(data as any, {
     style: (feature) => {
       const featureStyle = typeof style === 'function' 
@@ -340,6 +369,7 @@ export function loadHeatmap(
   // Fallback: Use circle markers as heatmap visualization
   console.warn('leaflet.heat plugin not available, using circle markers as fallback');
   
+  const L = getLeaflet();
   const markerGroup = L.layerGroup();
   data.forEach(([lat, lng, intensity]) => {
     const radius = (options.radius || 25) * intensity;
@@ -374,6 +404,7 @@ export function loadRiskPolygon(
   color: string = '#ff0000',
   options: PolygonStyleOptions = {}
 ): L.Polygon {
+  const L = getLeaflet();
   const polygon = L.polygon(polygonData as any, {
     color: options.color || color,
     weight: options.weight || 3,
@@ -381,6 +412,13 @@ export function loadRiskPolygon(
     fillColor: options.fillColor || color,
     fillOpacity: options.fillOpacity || 0.3,
     dashArray: options.dashArray,
+  });
+
+  // Prevent event bubbling to prevent cards from hiding
+  polygon.on('click', (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
   });
 
   polygon.addTo(map);
@@ -400,12 +438,20 @@ export function loadCycloneTrack(
   trackData: Array<[number, number]>,
   options: TrackOptions = {}
 ): L.Polyline {
+  const L = getLeaflet();
   const track = L.polyline(trackData, {
     color: options.color || '#FF3B30',
     weight: options.weight || 4,
     opacity: options.opacity || 0.8,
     dashArray: options.dashArray || '10, 5',
     smoothFactor: options.smoothFactor || 1.0,
+  });
+
+  // Prevent event bubbling to prevent cards from hiding
+  track.on('click', (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
   });
 
   track.addTo(map);
@@ -469,6 +515,7 @@ export function addMarker(
 ): L.Marker {
   // Ensure icon is set - use provided icon or default
   const icon = options.icon || getDefaultIcon();
+  const L = getLeaflet();
 
   const marker = L.marker(coords, {
     icon: icon,
@@ -481,8 +528,20 @@ export function addMarker(
   });
 
   if (popupContent) {
-    marker.bindPopup(popupContent);
+    marker.bindPopup(popupContent, {
+      closeOnClick: false,
+      autoClose: false,
+      closeOnEscapeKey: true,
+    });
   }
+
+  // Prevent event bubbling to prevent cards from hiding
+  marker.on('click', (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
+    }
+  });
 
   marker.addTo(map);
   return marker;
@@ -503,6 +562,7 @@ export function addCircle(
   radius: number,
   options: PolygonStyleOptions = {}
 ): L.Circle {
+  const L = getLeaflet();
   const circle = L.circle(coords, {
     radius,
     color: options.color || '#3388ff',
@@ -511,6 +571,13 @@ export function addCircle(
     fillColor: options.fillColor || '#3388ff',
     fillOpacity: options.fillOpacity || 0.2,
     dashArray: options.dashArray,
+  });
+
+  // Prevent event bubbling to prevent cards from hiding
+  circle.on('click', (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
   });
 
   circle.addTo(map);
@@ -559,5 +626,79 @@ export function getMapCenter(map: LeafletMap): [number, number] {
  */
 export function getMapZoom(map: LeafletMap): number {
   return map.getZoom();
+}
+
+/**
+ * Create a layer group
+ * 
+ * @returns Leaflet layer group instance
+ */
+export function createLayerGroup(): any {
+  const L = getLeaflet();
+  return L.layerGroup();
+}
+
+/**
+ * Layer Management
+ */
+const layerRegistry = new Map<string, L.Layer>();
+
+/**
+ * Register a layer with the map engine
+ */
+export function registerLayer(id: string, layer: L.Layer, map: LeafletMap): void {
+  layerRegistry.set(id, layer);
+  if (!map.hasLayer(layer)) {
+    layer.addTo(map);
+  }
+}
+
+/**
+ * Show a registered layer
+ */
+export function showLayer(id: string, map: LeafletMap): void {
+  const layer = layerRegistry.get(id);
+  if (layer && !map.hasLayer(layer)) {
+    layer.addTo(map);
+  }
+}
+
+/**
+ * Hide a registered layer
+ */
+export function hideLayer(id: string, map: LeafletMap): void {
+  const layer = layerRegistry.get(id);
+  if (layer && map.hasLayer(layer)) {
+    map.removeLayer(layer);
+  }
+}
+
+/**
+ * Toggle a registered layer
+ */
+export function toggleLayer(id: string, map: LeafletMap): void {
+  const layer = layerRegistry.get(id);
+  if (layer) {
+    if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    } else {
+      layer.addTo(map);
+    }
+  }
+}
+
+/**
+ * Check if a layer is visible
+ */
+export function isLayerVisible(id: string, map: LeafletMap): boolean {
+  const layer = layerRegistry.get(id);
+  return layer ? map.hasLayer(layer) : false;
+}
+
+/**
+ * Unregister a layer
+ */
+export function unregisterLayer(id: string): void {
+  layerRegistry.delete(id);
 }
 

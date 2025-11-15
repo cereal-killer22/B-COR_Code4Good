@@ -16,6 +16,11 @@ import {
   getMapBounds,
   getMapCenter,
   getMapZoom,
+  registerLayer,
+  showLayer,
+  hideLayer,
+  toggleLayer,
+  isLayerVisible,
 } from './MapEngine';
 
 /**
@@ -60,13 +65,18 @@ export function useMapEngine(
     }
 
     // Create map instance
-    const map = createBaseMap(container, options);
-    mapRef.current = map;
+    try {
+      const map = createBaseMap(container, options);
+      mapRef.current = map;
 
-    // Wait for map to be ready
-    map.whenReady(() => {
-      setIsReady(true);
-    });
+      // Wait for map to be ready
+      map.whenReady(() => {
+        setIsReady(true);
+      });
+    } catch (error) {
+      console.error('Error creating map:', error);
+      setIsReady(false);
+    }
 
     // Cleanup
     return () => {
@@ -143,6 +153,37 @@ export function useMapEngine(
     return null;
   }, []);
 
+  const registerMapLayer = useCallback((id: string, layer: L.Layer) => {
+    if (mapRef.current) {
+      registerLayer(id, layer, mapRef.current);
+    }
+  }, []);
+
+  const showMapLayer = useCallback((id: string) => {
+    if (mapRef.current) {
+      showLayer(id, mapRef.current);
+    }
+  }, []);
+
+  const hideMapLayer = useCallback((id: string) => {
+    if (mapRef.current) {
+      hideLayer(id, mapRef.current);
+    }
+  }, []);
+
+  const toggleMapLayer = useCallback((id: string) => {
+    if (mapRef.current) {
+      toggleLayer(id, mapRef.current);
+    }
+  }, []);
+
+  const checkLayerVisible = useCallback((id: string): boolean => {
+    if (mapRef.current) {
+      return isLayerVisible(id, mapRef.current);
+    }
+    return false;
+  }, []);
+
   return {
     map: mapRef.current,
     isReady,
@@ -152,6 +193,11 @@ export function useMapEngine(
     getCurrentBounds,
     getCurrentCenter,
     getCurrentZoom,
+    registerLayer: registerMapLayer,
+    showLayer: showMapLayer,
+    hideLayer: hideMapLayer,
+    toggleLayer: toggleMapLayer,
+    isLayerVisible: checkLayerVisible,
   };
 }
 

@@ -48,19 +48,32 @@ export async function GET(request: NextRequest) {
     const precip24h = hourly.precipitation.slice(0, 24).reduce((sum: number, val: number) => sum + (val || 0), 0);
     const precip72h = hourly.precipitation.slice(0, 72).reduce((sum: number, val: number) => sum + (val || 0), 0);
 
+    // Get hourly precipitation for intensity layer (next 24 hours)
+    const hourlyPrecip24h = hourly.precipitation.slice(0, 24);
+    const hourlyPrecip72h = hourly.precipitation.slice(0, 72);
+
     // Get soil moisture if available
     const soilMoisture = hourly.soil_moisture_0_to_10cm?.[0];
 
     // Get prediction
     const prediction = floodRiskFromPrecip(precip24h, precip72h, soilMoisture);
 
+    // Calculate forecast precipitation (24h and 72h ahead)
+    const forecast24h = hourly.precipitation.slice(24, 48).reduce((sum: number, val: number) => sum + (val || 0), 0);
+    const forecast72h = hourly.precipitation.slice(24, 96).reduce((sum: number, val: number) => sum + (val || 0), 0);
+
     return NextResponse.json({
       location: { lat, lon: lng },
       rainfall: {
         precip24h,
         precip72h,
+        forecast24h,
+        forecast72h,
         soilMoisture,
-        hourlyPrecip: hourly.precipitation.slice(0, 24) // Last 24 hours
+        hourlyPrecip: hourly.precipitation.slice(0, 24), // Current/real-time hourly
+        hourlyPrecip24h, // Next 24 hours hourly
+        hourlyPrecip72h, // Next 72 hours hourly
+        currentIntensity: hourly.precipitation[0] || 0 // Current hour intensity
       },
       prediction,
       timestamp: new Date().toISOString(),

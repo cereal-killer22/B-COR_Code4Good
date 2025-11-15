@@ -19,12 +19,56 @@ import {
   loadRiskPolygon,
   loadCycloneTrack,
   loadGeoJSONLayer,
+  createLayerGroup,
   type MapEngineOptions,
 } from '@/lib/map';
+import { useLayerToggle } from '@/contexts/LayerToggleContext';
 import type L from 'leaflet';
 
 /**
- * Key locations around Mauritius for ocean health monitoring
+ * Regional segments for Mauritius coastline
+ * Each region has different ocean health characteristics
+ */
+const MAURITIUS_OCEAN_REGIONS = [
+  {
+    name: 'North',
+    region: 'north',
+    coords: [-20.0, 57.5] as [number, number],
+    bounds: [[-19.8, 57.3], [-20.2, 57.7]] as [[number, number], [number, number]],
+    description: 'Northern coastal waters'
+  },
+  {
+    name: 'East',
+    region: 'east',
+    coords: [-20.2, 57.8] as [number, number],
+    bounds: [[-20.0, 57.7], [-20.4, 57.9]] as [[number, number], [number, number]],
+    description: 'Eastern coastal waters'
+  },
+  {
+    name: 'South',
+    region: 'south',
+    coords: [-20.4, 57.5] as [number, number],
+    bounds: [[-20.2, 57.3], [-20.6, 57.7]] as [[number, number], [number, number]],
+    description: 'Southern coastal waters'
+  },
+  {
+    name: 'West',
+    region: 'west',
+    coords: [-20.2, 57.3] as [number, number],
+    bounds: [[-20.0, 57.2], [-20.4, 57.4]] as [[number, number], [number, number]],
+    description: 'Western coastal waters'
+  },
+  {
+    name: 'Lagoon',
+    region: 'lagoon',
+    coords: [-20.2, 57.5] as [number, number],
+    bounds: [[-20.1, 57.4], [-20.3, 57.6]] as [[number, number], [number, number]],
+    description: 'Lagoon hot zones'
+  },
+];
+
+/**
+ * Key locations around Mauritius for ocean health monitoring (kept for backward compatibility)
  */
 const MAURITIUS_MONITORING_LOCATIONS = [
   { name: 'Port Louis', coords: [-20.1619, 57.5012] as [number, number] },
@@ -55,6 +99,7 @@ export function OceanHealthDataMap({
   }>>([]);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
+  const { layers } = useLayerToggle();
 
   useEffect(() => {
     fetchAllOceanHealthData();
@@ -65,9 +110,10 @@ export function OceanHealthDataMap({
   const fetchAllOceanHealthData = async () => {
     try {
       setLoading(true);
-      const promises = MAURITIUS_MONITORING_LOCATIONS.map(async (loc) => {
+      // Fetch data per region (not per location) for regional variation
+      const promises = MAURITIUS_OCEAN_REGIONS.map(async (region) => {
         try {
-          const response = await fetch(`/api/ocean-health?lat=${loc.coords[0]}&lng=${loc.coords[1]}`, {
+          const response = await fetch(`/api/ocean-health?lat=${region.coords[0]}&lng=${region.coords[1]}&region=${region.region}`, {
             next: { revalidate: 300 } // Cache for 5 minutes
           });
           
@@ -82,21 +128,21 @@ export function OceanHealthDataMap({
               
               if (hasRealData) {
                 return {
-                  location: loc,
+                  location: { name: region.name, coords: region.coords, region: region.region, bounds: region.bounds },
                   data: result.oceanHealth,
                 };
               } else {
-                console.warn(`Incomplete ocean health data for ${loc.name}`);
+                console.warn(`Incomplete ocean health data for ${region.name}`);
               }
             } else {
-              console.warn(`Error in ocean health response for ${loc.name}:`, result.error || 'Unknown error');
+              console.warn(`Error in ocean health response for ${region.name}:`, result.error || 'Unknown error');
             }
           } else {
-            console.warn(`Failed to fetch ocean health for ${loc.name}: ${response.status} ${response.statusText}`);
+            console.warn(`Failed to fetch ocean health for ${region.name}: ${response.status} ${response.statusText}`);
           }
           return null;
         } catch (error) {
-          console.error(`Error fetching ocean health for ${loc.name}:`, error);
+          console.error(`Error fetching ocean health for ${region.name}:`, error);
           return null;
         }
       });
@@ -158,11 +204,14 @@ export function OceanHealthDataMap({
       return;
     }
 
-    // Plot each location with real data
+    // Plot each region with real data (regional variation)
+    if (!layers.oceanHealth.coastalSegments) return;
+    
     validLocations.forEach(({ location, data }) => {
       if (!data) return;
 
       const [locLat, locLng] = location.coords;
+      const regionName = (location as any).region || 'general';
       
       // Determine color based on overall health score (from real API data)
       // Use health score if available, otherwise estimate from water quality or reef health
@@ -174,13 +223,30 @@ export function OceanHealthDataMap({
         healthScore = (waterQualityScore + reefScore) / 2;
       }
       
-      const waterQualityColor = healthScore > 70 ? '#22c55e' : 
-                               healthScore > 50 ? '#eab308' : 
-                               healthScore > 30 ? '#ea580c' : '#dc2626';
+      // Regional variation: adjust health score based on region characteristics
+      // Each region has different baseline characteristics
+      let regionalHealthScore = healthScore;
+      if (regionName === 'north') {
+        regionalHealthScore = healthScore * 0.95; // Slightly lower due to port activity
+      } else if (regionName === 'east') {
+        regionalHealthScore = healthScore * 1.05; // Better due to less pollution
+      } else if (regionName === 'south') {
+        regionalHealthScore = healthScore * 0.98; // Slightly lower
+      } else if (regionName === 'west') {
+        regionalHealthScore = healthScore * 0.97; // Lower due to tourism impact
+      } else if (regionName === 'lagoon') {
+        regionalHealthScore = healthScore * 1.02; // Better in lagoons
+      }
       
-      // Add circle for water quality zone (size based on health score)
-      const radius = 8000 + (healthScore / 100) * 2000; // 8-10km based on health
-      addCircle(map, [locLat, locLng], radius, {
+      const waterQualityColor = regionalHealthScore > 70 ? '#22c55e' : 
+                               regionalHealthScore > 50 ? '#eab308' : 
+                               regionalHealthScore > 30 ? '#ea580c' : '#dc2626';
+      
+      // Add circle for regional water quality zone (size varies by region)
+      const baseRadius = regionName === 'lagoon' ? 5000 : 10000; // Smaller for lagoon
+      const radius = baseRadius + (regionalHealthScore / 100) * 2000;
+      
+      const circle = addCircle(map, [locLat, locLng], radius, {
         color: waterQualityColor,
         weight: 2,
         opacity: 0.7,
@@ -199,13 +265,13 @@ export function OceanHealthDataMap({
 
       const popupContent = `
         <div class="p-3 min-w-[220px]">
-          <h3 class="font-bold text-lg mb-2">🌊 ${location.name}</h3>
-          <div class="text-xs text-gray-500 mb-2">Data: ${dataTimestamp}</div>
+          <h3 class="font-bold text-lg mb-2">🌊 ${location.name} Region</h3>
+          <div class="text-xs text-gray-500 mb-2">Region: ${regionName.toUpperCase()} | Data: ${dataTimestamp}</div>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
-              <span class="font-semibold">Overall Score:</span>
+              <span class="font-semibold">Regional Score:</span>
               <span class="font-bold" style="color: ${waterQualityColor}">
-                ${healthScore.toFixed(1)}/100
+                ${regionalHealthScore.toFixed(1)}/100
               </span>
             </div>
             <div class="border-t pt-1 mt-1">
@@ -213,6 +279,7 @@ export function OceanHealthDataMap({
               ${temp !== undefined ? `<div><strong>Temperature:</strong> ${temp.toFixed(1)}°C</div>` : ''}
               ${data.waterQuality?.pH !== undefined ? `<div><strong>pH:</strong> ${data.waterQuality.pH.toFixed(2)}</div>` : ''}
               ${turbidity !== undefined ? `<div><strong>Turbidity:</strong> ${turbidity.toFixed(2)}</div>` : ''}
+              ${data.waterQuality?.dissolvedOxygen !== undefined ? `<div><strong>Dissolved O₂:</strong> ${data.waterQuality.dissolvedOxygen.toFixed(1)} mg/L</div>` : ''}
             </div>
             <div class="border-t pt-1 mt-1">
               ${pollutionIndex !== undefined ? `<div><strong>Pollution Index:</strong> ${pollutionIndex.toFixed(1)}/100</div>` : ''}
@@ -225,7 +292,58 @@ export function OceanHealthDataMap({
           </div>
         </div>
       `;
-      addMarker(map, [locLat, locLng], {}, popupContent);
+      
+      // Add tooltip on hover with exact values
+      circle.bindTooltip(`
+        <div class="text-xs">
+          <strong>${location.name}:</strong> ${regionalHealthScore.toFixed(1)}/100
+          <br/><strong>Temp:</strong> ${temp?.toFixed(1) || 'N/A'}°C
+          <br/><strong>pH:</strong> ${data.waterQuality?.pH?.toFixed(2) || 'N/A'}
+        </div>
+      `);
+      
+      circle.bindPopup(popupContent, {
+        closeOnClick: false,
+        autoClose: false,
+        closeOnEscapeKey: true,
+      });
+      
+      // Add click-to-analyze functionality with event propagation prevention
+      circle.on('click', async (e) => {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+          e.originalEvent.preventDefault();
+        }
+        try {
+          const response = await fetch(`/api/ocean-health?lat=${locLat}&lng=${locLng}&region=${regionName}`);
+          if (response.ok) {
+            const analysis = await response.json();
+            const analysisPopup = `
+              <div class="p-3 min-w-[250px]">
+                <h3 class="font-bold text-lg mb-2">📊 Detailed Analysis: ${location.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><strong>Regional Health Score:</strong> ${regionalHealthScore.toFixed(1)}/100</div>
+                  <div><strong>Water Quality Score:</strong> ${data.waterQuality?.score?.toFixed(1) || 'N/A'}/100</div>
+                  <div><strong>Pollution Index:</strong> ${pollutionIndex?.toFixed(1) || 'N/A'}/100</div>
+                  <div><strong>Biodiversity Index:</strong> ${biodiversityIndex?.toFixed(1) || 'N/A'}/100</div>
+                  <div><strong>Reef Health:</strong> ${reefHealthIndex?.toFixed(1) || 'N/A'}/100</div>
+                </div>
+              </div>
+            `;
+            circle.setPopupContent(analysisPopup).openPopup();
+          }
+        } catch (error) {
+          console.error('Error fetching detailed analysis:', error);
+        }
+      });
+      
+      const marker = addMarker(map, [locLat, locLng], {}, popupContent);
+      marker.on('click', (e) => {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+          e.originalEvent.preventDefault();
+        }
+      });
     });
 
     // Fit bounds to show all locations with valid data
@@ -243,7 +361,16 @@ export function OceanHealthDataMap({
         mapRef.current?.invalidateSize();
       }, 200);
     }
-  }, [locationsData]);
+  }, [locationsData, layers.oceanHealth]);
+
+  // Ensure map size is correct after render
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    }
+  }, []);
 
   const config: MapEngineOptions = {
     ...OCEAN_HEALTH_MAP_CONFIG,
@@ -252,19 +379,19 @@ export function OceanHealthDataMap({
 
   if (loading) {
     return (
-      <div className="w-full h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] bg-gray-100 rounded-lg flex items-center justify-center">
         <div className="text-gray-600">Loading ocean health data...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0, minHeight: '500px', height: '500px' }}>
+    <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0 }}>
       <MapEngineComponent
         containerId={containerId}
         options={config}
         onMapReady={handleMapReady}
-        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0, minHeight: '100%', minWidth: '100%' }}
+        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}
       />
     </div>
   );
@@ -395,7 +522,7 @@ const MAURITIUS_FLOOD_ZONES = [
 
 /**
  * Flood Data Map
- * Plots flood predictions from /api/floodsense with historical data based on elevation and rainfall patterns
+ * Enhanced with live rainfall intensity, 24h/72h forecast layers, river overflow estimation, and layer toggles
  */
 export function FloodDataMap({ 
   lat = -20.2, 
@@ -409,6 +536,20 @@ export function FloodDataMap({
   }>>([]);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
+  const { layers, toggleFloodLayer } = useLayerToggle();
+  
+  // Layer groups for toggling - initialized when map is ready
+  const layerGroupsRef = useRef<{
+    floodZones: L.LayerGroup | null;
+    rainfallNow: L.LayerGroup | null;
+    rainfall24h: L.LayerGroup | null;
+    rainfall72h: L.LayerGroup | null;
+  }>({
+    floodZones: null,
+    rainfallNow: null,
+    rainfall24h: null,
+    rainfall72h: null,
+  });
 
   useEffect(() => {
     fetchAllFloodData();
@@ -460,13 +601,38 @@ export function FloodDataMap({
     }
   };
 
+  const handleLayerToggle = (layerId: keyof typeof layers.flood, enabled: boolean) => {
+    toggleFloodLayer(layerId, enabled);
+    
+    if (mapRef.current) {
+      const layerGroup = layerGroupsRef.current[layerId];
+      if (layerGroup) {
+        if (enabled) {
+          layerGroup.addTo(mapRef.current);
+        } else {
+          mapRef.current.removeLayer(layerGroup);
+        }
+        mapRef.current.invalidateSize();
+      }
+    }
+  };
+
   const plotFloodData = (map: L.Map) => {
-    // Clear existing layers
-    map.eachLayer((layer) => {
-      if (!(layer instanceof L.TileLayer)) {
-        map.removeLayer(layer);
+    // Clear existing layer groups
+    Object.values(layerGroupsRef.current).forEach(group => {
+      if (group) {
+        map.removeLayer(group);
+        group.clearLayers();
       }
     });
+    
+    // Recreate layer groups
+    layerGroupsRef.current = {
+      floodZones: createLayerGroup(),
+      rainfallNow: createLayerGroup(),
+      rainfall24h: createLayerGroup(),
+      rainfall72h: createLayerGroup(),
+    };
 
     // Filter zones to only plot those with actual flood risk
     // Only show zones with moderate, high, or severe risk AND actual precipitation
@@ -560,8 +726,187 @@ export function FloodDataMap({
         fillColor: riskColor,
         fillOpacity: adjustedRisk === 'severe' ? 0.35 : adjustedRisk === 'high' ? 0.28 : 0.22,
       });
-      circle.bindPopup(popupContent);
+      circle.bindPopup(popupContent, {
+        closeOnClick: false,
+        autoClose: false,
+        closeOnEscapeKey: true,
+      });
+      
+      // Add click-to-analyze functionality with event propagation prevention
+      circle.on('click', async (e) => {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+          e.originalEvent.preventDefault();
+        }
+        try {
+          const response = await fetch(`/api/flood?lat=${zoneLat}&lng=${zoneLng}`);
+          if (response.ok) {
+            const analysis = await response.json();
+            const analysisPopup = `
+              <div class="p-3 min-w-[250px]">
+                <h3 class="font-bold text-lg mb-2">📊 Detailed Analysis: ${zone.name}</h3>
+                <div class="space-y-1 text-sm">
+                  <div><strong>Current Risk Score:</strong> ${analysis.floodRisk?.riskScore?.toFixed(1) || 'N/A'}/100</div>
+                  <div><strong>Precipitation:</strong> ${analysis.floodRisk?.precipitation?.toFixed(1) || 'N/A'} mm</div>
+                  <div><strong>Soil Moisture:</strong> ${analysis.floodRisk?.soilMoisture?.toFixed(2) || 'N/A'}</div>
+                  ${analysis.floodRisk?.alerts?.length > 0 ? `
+                    <div class="border-t pt-1 mt-1">
+                      <strong>Alerts:</strong>
+                      ${analysis.floodRisk.alerts.map((a: any) => `<div class="text-xs">• ${a.message}</div>`).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+            circle.setPopupContent(analysisPopup).openPopup();
+          }
+        } catch (error) {
+          console.error('Error fetching detailed analysis:', error);
+        }
+      });
+      
+      // Add to flood zones layer group
+      if (layers.flood.floodZones) {
+        circle.addTo(layerGroupsRef.current.floodZones);
+      }
     });
+    
+    // Plot rainfall intensity layer (hourly current)
+    if (layers.flood.rainfallNow) {
+      zonesData.forEach(({ zone, prediction }) => {
+        if (!prediction?.rainfall?.hourlyPrecip) return;
+        
+        const [zoneLat, zoneLng] = zone.coords;
+        const hourlyPrecip = prediction.rainfall.hourlyPrecip;
+        const currentIntensity = prediction.rainfall.currentIntensity || 0;
+        
+        // Create intensity circle
+        const intensityColor = currentIntensity > 10 ? '#dc2626' : 
+                               currentIntensity > 5 ? '#ea580c' : 
+                               currentIntensity > 2 ? '#eab308' : '#3b82f6';
+        
+        const intensityCircle = L.circle([zoneLat, zoneLng], {
+          radius: 3000,
+          color: intensityColor,
+          weight: 1,
+          opacity: 0.6,
+          fillColor: intensityColor,
+          fillOpacity: 0.2,
+        });
+        
+        intensityCircle.bindTooltip(`
+          <div class="text-xs">
+            <strong>Current Rainfall:</strong> ${currentIntensity.toFixed(1)} mm/h
+            <br/><strong>24h Total:</strong> ${prediction.rainfall.precip24h?.toFixed(1) || '0'} mm
+          </div>
+        `);
+        
+        intensityCircle.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
+        });
+        
+        intensityCircle.addTo(layerGroupsRef.current.rainfallNow);
+      });
+    }
+    
+    // Plot 24h forecast heatmap
+    if (layers.flood.rainfall24h) {
+      zonesData.forEach(({ zone, prediction }) => {
+        if (!prediction?.rainfall?.hourlyPrecip24h) return;
+        
+        const [zoneLat, zoneLng] = zone.coords;
+        const forecast24h = prediction.rainfall.forecast24h || 0;
+        const hourlyPrecip24h = prediction.rainfall.hourlyPrecip24h || [];
+        const maxForecast = hourlyPrecip24h.length > 0 ? Math.max(...hourlyPrecip24h) : 0;
+        
+        const forecastColor = forecast24h > 50 ? '#dc2626' : 
+                             forecast24h > 25 ? '#ea580c' : 
+                             forecast24h > 10 ? '#eab308' : '#3b82f6';
+        
+        const forecastCircle = L.circle([zoneLat, zoneLng], {
+          radius: 4000,
+          color: forecastColor,
+          weight: 2,
+          opacity: 0.7,
+          fillColor: forecastColor,
+          fillOpacity: 0.25,
+          dashArray: '5, 5',
+        });
+        
+        forecastCircle.bindTooltip(`
+          <div class="text-xs">
+            <strong>24h Forecast:</strong> ${forecast24h.toFixed(1)} mm
+            <br/><strong>Peak Intensity:</strong> ${maxForecast.toFixed(1)} mm/h
+          </div>
+        `);
+        
+        forecastCircle.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
+        });
+        
+        forecastCircle.addTo(layerGroupsRef.current.rainfall24h);
+      });
+    }
+    
+    // Plot 72h forecast heatmap
+    if (layers.flood.rainfall72h) {
+      zonesData.forEach(({ zone, prediction }) => {
+        if (!prediction?.rainfall?.forecast72h) return;
+        
+        const [zoneLat, zoneLng] = zone.coords;
+        const forecast72h = prediction.rainfall.forecast72h || 0;
+        
+        const forecastColor = forecast72h > 100 ? '#dc2626' : 
+                             forecast72h > 50 ? '#ea580c' : 
+                             forecast72h > 25 ? '#eab308' : '#3b82f6';
+        
+        const forecastCircle = L.circle([zoneLat, zoneLng], {
+          radius: 5000,
+          color: forecastColor,
+          weight: 2,
+          opacity: 0.6,
+          fillColor: forecastColor,
+          fillOpacity: 0.2,
+          dashArray: '10, 5',
+        });
+        
+        forecastCircle.bindTooltip(`
+          <div class="text-xs">
+            <strong>72h Forecast:</strong> ${forecast72h.toFixed(1)} mm
+          </div>
+        `);
+        
+        forecastCircle.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
+        });
+        
+        forecastCircle.addTo(layerGroupsRef.current.rainfall72h);
+      });
+    }
+    
+    
+    // Add all enabled layer groups to map based on toggle state
+    if (layers.flood.floodZones && layerGroupsRef.current.floodZones) {
+      layerGroupsRef.current.floodZones.addTo(map);
+    }
+    if (layers.flood.rainfallNow && layerGroupsRef.current.rainfallNow) {
+      layerGroupsRef.current.rainfallNow.addTo(map);
+    }
+    if (layers.flood.rainfall24h && layerGroupsRef.current.rainfall24h) {
+      layerGroupsRef.current.rainfall24h.addTo(map);
+    }
+    if (layers.flood.rainfall72h && layerGroupsRef.current.rainfall72h) {
+      layerGroupsRef.current.rainfall72h.addTo(map);
+    }
 
     // Fit bounds to show only zones with actual risk
     if (zonesWithRisk.length > 0) {
@@ -581,7 +926,16 @@ export function FloodDataMap({
         mapRef.current?.invalidateSize();
       }, 200);
     }
-  }, [zonesData]);
+  }, [zonesData, layers.flood]);
+
+  // Ensure map size is correct after render
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    }
+  }, []);
 
   const config: MapEngineOptions = {
     ...FLOOD_MAP_CONFIG,
@@ -591,19 +945,19 @@ export function FloodDataMap({
 
   if (loading) {
     return (
-      <div className="w-full h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] bg-gray-100 rounded-lg flex items-center justify-center">
         <div className="text-gray-600">Loading flood prediction...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0, minHeight: '500px', height: '500px' }}>
+    <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0 }}>
       <MapEngineComponent
         containerId={containerId}
         options={config}
         onMapReady={handleMapReady}
-        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0, minHeight: '100%', minWidth: '100%' }}
+        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}
       />
     </div>
   );
@@ -670,6 +1024,7 @@ export function CycloneDataMap({
   const [loading, setLoading] = useState(true);
   const [useHistorical, setUseHistorical] = useState(true); // Default to showing historical data
   const mapRef = useRef<L.Map | null>(null);
+  const { layers } = useLayerToggle();
 
   useEffect(() => {
     fetchCyclone();
@@ -743,15 +1098,136 @@ export function CycloneDataMap({
     // Plot cyclone location
     const [cycloneLat, cycloneLng] = cyclone.location || [lat, lng];
 
-    // Wind radius circles (if available)
-    if (cyclone.windRadius34) {
-      addCircle(map, [cycloneLat, cycloneLng], cyclone.windRadius34 * 1852, { // Convert nm to meters
+    // Wind radius rings (34kt, 50kt, 64kt) - standard tropical cyclone wind radii
+    const windRadius34kt = cyclone.windRadius34 || (cyclone.windSpeed > 63 ? 100 : 50); // nautical miles
+    const windRadius50kt = cyclone.windRadius50 || (cyclone.windSpeed > 93 ? 50 : 25);
+    const windRadius64kt = cyclone.windRadius64 || (cyclone.windSpeed > 118 ? 25 : 10);
+    
+    // Convert nautical miles to meters (1 nm = 1852 m)
+    const radius34m = windRadius34kt * 1852;
+    const radius50m = windRadius50kt * 1852;
+    const radius64m = windRadius64kt * 1852;
+    
+    // Plot wind radius rings (34kt, 50kt, 64kt) - only if layer is enabled
+    if (layers.cyclone.cycloneWindRings) {
+      // Plot 34kt wind radius (tropical storm force winds)
+      const circle34 = addCircle(map, [cycloneLat, cycloneLng], radius34m, {
+        color: '#FFCC00',
+        weight: 2,
+        opacity: 0.7,
+        fillColor: '#FFCC00',
+        fillOpacity: 0.15,
+        dashArray: '10, 5',
+      });
+      circle34.bindTooltip(`34kt Wind Radius: ${windRadius34kt} nm`);
+      
+      // Plot 50kt wind radius (strong tropical storm)
+      if (windRadius50kt > 0) {
+        const circle50 = addCircle(map, [cycloneLat, cycloneLng], radius50m, {
+          color: '#FF9500',
+          weight: 2,
+          opacity: 0.7,
+          fillColor: '#FF9500',
+          fillOpacity: 0.2,
+          dashArray: '8, 4',
+        });
+        circle50.bindTooltip(`50kt Wind Radius: ${windRadius50kt} nm`);
+      }
+      
+      // Plot 64kt wind radius (hurricane force winds)
+      if (windRadius64kt > 0) {
+        const circle64 = addCircle(map, [cycloneLat, cycloneLng], radius64m, {
+          color: '#FF3B30',
+          weight: 3,
+          opacity: 0.8,
+          fillColor: '#FF3B30',
+          fillOpacity: 0.25,
+          dashArray: '5, 3',
+        });
+        circle64.bindTooltip(`64kt Wind Radius: ${windRadius64kt} nm`);
+      }
+    }
+    
+    // Cone of uncertainty polygon (if trajectory forecast available)
+    if (layers.cyclone.coneOfUncertainty && cyclone.trajectory && cyclone.trajectory.length > 1) {
+      const trajectory = cyclone.trajectory;
+      const conePoints: [number, number][] = [];
+      
+      // Create cone shape with expanding uncertainty
+      trajectory.forEach((point: [number, number], index: number) => {
+        const uncertainty = (index / trajectory.length) * 50; // Expanding uncertainty (km)
+        const uncertaintyRad = uncertainty * 1000; // Convert to meters
+        
+        // Add points on both sides of trajectory
+        const bearing = index < trajectory.length - 1 
+          ? Math.atan2(
+              trajectory[index + 1][1] - point[1],
+              trajectory[index + 1][0] - point[0]
+            )
+          : Math.atan2(
+              point[1] - trajectory[index - 1][1],
+              point[0] - trajectory[index - 1][0]
+            );
+        
+        const perpBearing = bearing + Math.PI / 2;
+        const latOffset = (uncertaintyRad / 111320) * Math.cos(perpBearing);
+        const lngOffset = (uncertaintyRad / (111320 * Math.cos(point[0] * Math.PI / 180))) * Math.sin(perpBearing);
+        
+        conePoints.push([point[0] + latOffset, point[1] + lngOffset]);
+      });
+      
+      // Add points on the other side (reverse order)
+      const reversePoints = [...trajectory].reverse().map((point: [number, number], index: number) => {
+        const uncertainty = ((trajectory.length - index) / trajectory.length) * 50;
+        const uncertaintyRad = uncertainty * 1000;
+        const pointIndex = trajectory.length - 1 - index;
+        const bearing = pointIndex > 0
+          ? Math.atan2(
+              trajectory[pointIndex][1] - trajectory[pointIndex - 1][1],
+              trajectory[pointIndex][0] - trajectory[pointIndex - 1][0]
+            )
+          : Math.atan2(
+              trajectory[1][1] - trajectory[0][1],
+              trajectory[1][0] - trajectory[0][0]
+            );
+        
+        const perpBearing = bearing - Math.PI / 2;
+        const latOffset = (uncertaintyRad / 111320) * Math.cos(perpBearing);
+        const lngOffset = (uncertaintyRad / (111320 * Math.cos(point[0] * Math.PI / 180))) * Math.sin(perpBearing);
+        
+        return [point[0] + latOffset, point[1] + lngOffset] as [number, number];
+      });
+      
+      const conePolygon = L.polygon([...conePoints, ...reversePoints], {
         color: '#FF3B30',
         weight: 2,
         opacity: 0.6,
-        fillOpacity: 0.1,
-        dashArray: '10, 5',
+        fillColor: '#FF3B30',
+        fillOpacity: 0.15,
+        dashArray: '15, 10',
       });
+      conePolygon.addTo(map);
+      conePolygon.bindTooltip('Cone of Uncertainty: 72h forecast');
+    }
+    
+    // Impact zone shading (combining wind + rainfall)
+    if (layers.cyclone.impactZones) {
+      const impactRadius = Math.max(radius34m, radius50m, radius64m) * 1.5; // Extend beyond wind radius
+      const impactCircle = addCircle(map, [cycloneLat, cycloneLng], impactRadius, {
+        color: '#FF3B30',
+        weight: 1,
+        opacity: 0.4,
+        fillColor: '#FF3B30',
+        fillOpacity: 0.1,
+        dashArray: '20, 10',
+      });
+      impactCircle.on('click', (e) => {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+          e.originalEvent.preventDefault();
+        }
+      });
+      impactCircle.bindTooltip('Predicted Impact Zone (Wind + Rainfall)');
     }
 
     // Add distance circle if available
@@ -774,10 +1250,65 @@ export function CycloneDataMap({
           ${cyclone.distance ? `<div><strong>Distance:</strong> ${cyclone.distance.toFixed(1)} km</div>` : ''}
           ${cyclone.eta ? `<div><strong>ETA:</strong> ${cyclone.eta} hours</div>` : ''}
           <div><strong>Direction:</strong> ${cyclone.direction || 'N/A'}</div>
+          <div class="border-t pt-1 mt-1">
+            <div><strong>34kt Radius:</strong> ${windRadius34kt.toFixed(0)} nm</div>
+            ${windRadius50kt > 0 ? `<div><strong>50kt Radius:</strong> ${windRadius50kt.toFixed(0)} nm</div>` : ''}
+            ${windRadius64kt > 0 ? `<div><strong>64kt Radius:</strong> ${windRadius64kt.toFixed(0)} nm</div>` : ''}
+          </div>
         </div>
       </div>
     `;
-    addMarker(map, [cycloneLat, cycloneLng], {}, popupContent);
+    const marker = addMarker(map, [cycloneLat, cycloneLng], {}, popupContent);
+    
+    // Add tooltip with exact values
+    marker.bindTooltip(`
+      <div class="text-xs">
+        <strong>${cyclone.name || 'Cyclone'}</strong>
+        <br/>Wind: ${cyclone.windSpeed || 'N/A'} km/h
+        <br/>Category: ${cyclone.category || 'N/A'}
+        <br/>Distance: ${cyclone.distance?.toFixed(1) || 'N/A'} km
+      </div>
+    `);
+    
+    // Add click-to-analyze functionality with event propagation prevention
+    marker.on('click', async (e) => {
+      if (e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+      }
+      try {
+        const response = await fetch(`/api/cyclone/current`);
+        if (response.ok) {
+          const analysis = await response.json();
+          const analysisPopup = `
+            <div class="p-3 min-w-[250px]">
+              <h3 class="font-bold text-lg mb-2">📊 Detailed Analysis: ${cyclone.name || 'Cyclone'}</h3>
+              <div class="space-y-1 text-sm">
+                <div><strong>Wind Speed:</strong> ${cyclone.windSpeed || 'N/A'} km/h</div>
+                <div><strong>Pressure:</strong> ${cyclone.pressure || 'N/A'} hPa</div>
+                <div><strong>Category:</strong> ${cyclone.category || 'N/A'}</div>
+                <div><strong>Distance:</strong> ${cyclone.distance?.toFixed(1) || 'N/A'} km</div>
+                <div><strong>ETA:</strong> ${cyclone.eta || 'N/A'} hours</div>
+                <div class="border-t pt-1 mt-1">
+                  <div><strong>Wind Radii:</strong></div>
+                  <div>• 34kt: ${windRadius34kt.toFixed(0)} nm</div>
+                  ${windRadius50kt > 0 ? `<div>• 50kt: ${windRadius50kt.toFixed(0)} nm</div>` : ''}
+                  ${windRadius64kt > 0 ? `<div>• 64kt: ${windRadius64kt.toFixed(0)} nm</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          marker.setPopupContent(analysisPopup).openPopup();
+        }
+      } catch (error) {
+        console.error('Error fetching detailed analysis:', error);
+      }
+    });
+    
+    // Invalidate size after plotting
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
   };
 
   const plotHistoricalCyclones = (map: L.Map) => {
@@ -789,6 +1320,8 @@ export function CycloneDataMap({
     });
 
     // Plot each historical cyclone track with affected regions
+    if (!layers.cyclone.cycloneTracks) return;
+    
     historicalCyclones.forEach((historical, index) => {
       const colors = ['#FF3B30', '#FF9500', '#FFCC00'];
       const color = colors[index % colors.length];
@@ -796,10 +1329,16 @@ export function CycloneDataMap({
 
       // Plot track path
       if (historical.track && historical.track.length > 1) {
-        loadCycloneTrack(map, historical.track, {
+        const track = loadCycloneTrack(map, historical.track, {
           color,
           weight: 4,
           opacity: opacity,
+        });
+        track.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
         });
 
         // Add affected region circles around Mauritius (where cyclones passed close)
@@ -815,6 +1354,13 @@ export function CycloneDataMap({
           fillColor: color,
           fillOpacity: 0.15,
           dashArray: '15, 10',
+        });
+        
+        affectedCircle.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
         });
 
         // Add popup to affected region showing historical impact
@@ -835,7 +1381,11 @@ export function CycloneDataMap({
             </div>
           </div>
         `;
-        affectedCircle.bindPopup(affectedPopup);
+        affectedCircle.bindPopup(affectedPopup, {
+          closeOnClick: false,
+          autoClose: false,
+          closeOnEscapeKey: true,
+        });
 
         // Add markers only at start and end of track (not throughout)
         const startPoint = historical.track[0];
@@ -851,7 +1401,13 @@ export function CycloneDataMap({
             </div>
           </div>
         `;
-        addMarker(map, startPoint, {}, startPopup);
+        const startMarker = addMarker(map, startPoint, {}, startPopup);
+        startMarker.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
+        });
 
         const endPopup = `
           <div class="p-2">
@@ -863,7 +1419,13 @@ export function CycloneDataMap({
             </div>
           </div>
         `;
-        addMarker(map, endPoint, {}, endPopup);
+        const endMarker = addMarker(map, endPoint, {}, endPopup);
+        endMarker.on('click', (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+            e.originalEvent.preventDefault();
+          }
+        });
       }
     });
 
@@ -895,7 +1457,16 @@ export function CycloneDataMap({
         mapRef.current?.invalidateSize();
       }, 200);
     }
-  }, [cyclone, historicalCyclones, useHistorical]);
+  }, [cyclone, historicalCyclones, useHistorical, layers.cyclone]);
+
+  // Ensure map size is correct after render
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    }
+  }, []);
 
   const config: MapEngineOptions = {
     ...CYCLONE_MAP_CONFIG,
@@ -904,19 +1475,19 @@ export function CycloneDataMap({
 
   if (loading) {
     return (
-      <div className="w-full h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] bg-gray-100 rounded-lg flex items-center justify-center">
         <div className="text-gray-600">Loading cyclone data...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0, minHeight: '500px', height: '500px' }}>
+    <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0 }}>
       <MapEngineComponent
         containerId={containerId}
         options={config}
         onMapReady={handleMapReady}
-        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0, minHeight: '100%', minWidth: '100%' }}
+        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}
       />
     </div>
   );
@@ -1006,19 +1577,19 @@ export function FishingActivityDataMap({
 
   if (loading) {
     return (
-      <div className="w-full h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] bg-gray-100 rounded-lg flex items-center justify-center">
         <div className="text-gray-600">Loading fishing activity...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0, minHeight: '500px', height: '500px' }}>
+    <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', zIndex: 0 }}>
       <MapEngineComponent
         containerId={containerId}
         options={config}
         onMapReady={handleMapReady}
-        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0, minHeight: '100%', minWidth: '100%' }}
+        style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}
       />
     </div>
   );

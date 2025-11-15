@@ -53,3 +53,14 @@ export {
 // React hooks
 export { useMapEngine } from './useMapEngine';
 
+// Layer management
+export {
+  createLayerGroup,
+  registerLayer,
+  showLayer,
+  hideLayer,
+  toggleLayer,
+  isLayerVisible,
+  unregisterLayer,
+} from './MapEngine';
+

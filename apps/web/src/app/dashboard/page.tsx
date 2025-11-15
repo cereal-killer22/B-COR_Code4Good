@@ -12,6 +12,9 @@ import { OceanHealthDataMap } from '@/components/map/DataMapComponents';
 import BleachingRiskPanel from '@/components/BleachingRiskPanel';
 import CoastalRiskWidget from '@/components/CoastalRiskWidget';
 import AcidificationTracker from '@/components/AcidificationTracker';
+import FloodLayerToggles from '@/components/map/FloodLayerToggles';
+import CycloneLayerToggles from '@/components/map/CycloneLayerToggles';
+import OceanHealthLayerToggles from '@/components/map/OceanHealthLayerToggles';
 import { Card, StatusBadge, MetricCard, Button, PageHeader, SectionHeader } from '@/components/ui';
 import { useAutoRead } from '@/hooks/useAutoRead';
 import { useTextToSpeech } from '@/contexts/TextToSpeechContext';
@@ -690,7 +693,7 @@ export default function Dashboard() {
                 }
                 className="mb-6"
               />
-              <div className="h-96 rounded-lg border overflow-hidden">
+              <div className="h-[650px] min-h-[650px] md:h-[75vh] rounded-lg border overflow-hidden">
                 <ClimaGuardMap type="cyclone" />
               </div>
               
@@ -727,38 +730,33 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            {/* Traditional CycloneGuard (Trajectory) */}
+            {/* Cyclone Information Panel */}
             <Card>
-              <h2 className="text-xl font-semibold mb-4">🌪️ Cyclone Trajectory Tracking</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <ClimaGuardMap type="cyclone" />
+              <h2 className="text-xl font-semibold mb-4">🌪️ Cyclone Trajectory Information</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-blue-800 mb-2">LSTM Neural Network</h3>
+                  <p className="text-sm text-blue-700">
+                    Advanced deep learning model trained on historical cyclone data from IBTrACS and regional meteorological stations for trajectory prediction.
+                  </p>
                 </div>
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-800 mb-2">LSTM Neural Network</h3>
-                    <p className="text-sm text-blue-700">
-                      Advanced deep learning model trained on historical cyclone data from IBTrACS and regional meteorological stations for trajectory prediction.
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold mb-2">Trajectory Features:</h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• 72-hour trajectory prediction</li>
-                      <li>• Wind intensity forecasting</li>
-                      <li>• Landfall impact assessment</li>
-                      <li>• Real-time model updates</li>
-                    </ul>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-green-800 mb-2">Integrated Features:</h4>
-                    <ul className="text-sm space-y-1 text-green-700">
-                      <li>• Formation predictions on exact coordinates</li>
-                      <li>• Expected formation dates and times</li>
-                      <li>• Real-time environmental monitoring</li>
-                      <li>• Unified risk visualization</li>
-                    </ul>
-                  </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-2">Trajectory Features:</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>• 72-hour trajectory prediction</li>
+                    <li>• Wind intensity forecasting</li>
+                    <li>• Landfall impact assessment</li>
+                    <li>• Real-time model updates</li>
+                  </ul>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-green-800 mb-2">Integrated Features:</h4>
+                  <ul className="text-sm space-y-1 text-green-700">
+                    <li>• Formation predictions on exact coordinates</li>
+                    <li>• Expected formation dates and times</li>
+                    <li>• Real-time environmental monitoring</li>
+                    <li>• Unified risk visualization</li>
+                  </ul>
                 </div>
               </div>
             </Card>
@@ -838,7 +836,12 @@ export default function Dashboard() {
                 subtitle="Real-time ocean health assessment across Mauritius monitoring locations"
                 className="mb-4"
               />
-              <OceanHealthDataMap lat={-20.2} lng={57.5} />
+              <div className="relative">
+                <OceanHealthDataMap lat={-20.2} lng={57.5} />
+                <div className="absolute top-4 right-4 z-[1000]">
+                  <OceanHealthLayerToggles />
+                </div>
+              </div>
             </Card>
 
             {/* Ocean Health Sub-modules Grid */}

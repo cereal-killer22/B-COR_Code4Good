@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { HighContrastProvider } from "@/contexts/HighContrastContext";
 import { TextToSpeechProvider } from "@/contexts/TextToSpeechContext";
+import { LayerToggleProvider } from "@/contexts/LayerToggleContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import SettingsIcon from "@/components/SettingsIcon";
 import ReadAllButton from "@/components/ReadAllButton";
@@ -32,10 +33,12 @@ export default function RootLayout({
           <FontSizeProvider>
             <HighContrastProvider>
               <TextToSpeechProvider>
-                {children}
-                <SettingsIcon />
-                <ThemeToggle />
-                <ReadAllButton />
+                <LayerToggleProvider>
+                  {children}
+                  <SettingsIcon />
+                  <ThemeToggle />
+                  <ReadAllButton />
+                </LayerToggleProvider>
               </TextToSpeechProvider>
             </HighContrastProvider>
           </FontSizeProvider>

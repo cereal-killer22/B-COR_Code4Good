@@ -1,0 +1,158 @@
+{
+  "segments": [
+    {
+      "regionId": "north",
+      "name": "North",
+      "description": "Grand Baie, Cap Malheureux",
+      "center": [-20.0, 57.5],
+      "bounds": [[-19.8, 57.3], [-20.2, 57.7]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-19.8, 57.3],
+          [-19.8, 57.7],
+          [-20.2, 57.7],
+          [-20.2, 57.3],
+          [-19.8, 57.3]
+        ]]
+      }
+    },
+    {
+      "regionId": "east",
+      "name": "East",
+      "description": "Belle Mare, Trou d'Eau Douce",
+      "center": [-20.2, 57.8],
+      "bounds": [[-20.0, 57.7], [-20.4, 57.9]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.0, 57.7],
+          [-20.0, 57.9],
+          [-20.4, 57.9],
+          [-20.4, 57.7],
+          [-20.0, 57.7]
+        ]]
+      }
+    },
+    {
+      "regionId": "south",
+      "name": "South",
+      "description": "Bel Ombre, Souillac",
+      "center": [-20.4, 57.5],
+      "bounds": [[-20.2, 57.3], [-20.6, 57.7]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.2, 57.3],
+          [-20.2, 57.7],
+          [-20.6, 57.7],
+          [-20.6, 57.3],
+          [-20.2, 57.3]
+        ]]
+      }
+    },
+    {
+      "regionId": "west",
+      "name": "West",
+      "description": "Flic en Flac, Albion",
+      "center": [-20.2, 57.3],
+      "bounds": [[-20.0, 57.2], [-20.4, 57.4]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.0, 57.2],
+          [-20.0, 57.4],
+          [-20.4, 57.4],
+          [-20.4, 57.2],
+          [-20.0, 57.2]
+        ]]
+      }
+    },
+    {
+      "regionId": "lagoon-blue-bay",
+      "name": "Blue Bay",
+      "description": "Blue Bay Lagoon",
+      "center": [-20.4281, 57.7214],
+      "bounds": [[-20.4381, 57.7114], [-20.4181, 57.7314]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.4381, 57.7114],
+          [-20.4381, 57.7314],
+          [-20.4181, 57.7314],
+          [-20.4181, 57.7114],
+          [-20.4381, 57.7114]
+        ]]
+      }
+    },
+    {
+      "regionId": "lagoon-pointe-desny",
+      "name": "Pointe d'Esny",
+      "description": "Pointe d'Esny Lagoon",
+      "center": [-20.4167, 57.7333],
+      "bounds": [[-20.4267, 57.7233], [-20.4067, 57.7433]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.4267, 57.7233],
+          [-20.4267, 57.7433],
+          [-20.4067, 57.7433],
+          [-20.4067, 57.7233],
+          [-20.4267, 57.7233]
+        ]]
+      }
+    },
+    {
+      "regionId": "lagoon-tamarin",
+      "name": "Tamarin Bay",
+      "description": "Tamarin Bay Lagoon",
+      "center": [-20.3167, 57.3667],
+      "bounds": [[-20.3267, 57.3567], [-20.3067, 57.3767]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.3267, 57.3567],
+          [-20.3267, 57.3767],
+          [-20.3067, 57.3767],
+          [-20.3067, 57.3567],
+          [-20.3267, 57.3567]
+        ]]
+      }
+    },
+    {
+      "regionId": "lagoon-grand-river-se",
+      "name": "Grand River South East",
+      "description": "Grand River South East Lagoon",
+      "center": [-20.3833, 57.7167],
+      "bounds": [[-20.3933, 57.7067], [-20.3733, 57.7267]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.3933, 57.7067],
+          [-20.3933, 57.7267],
+          [-20.3733, 57.7267],
+          [-20.3733, 57.7067],
+          [-20.3933, 57.7067]
+        ]]
+      }
+    },
+    {
+      "regionId": "lagoon-trou-aux-biches",
+      "name": "Trou aux Biches",
+      "description": "Trou aux Biches Lagoon",
+      "center": [-20.0333, 57.5500],
+      "bounds": [[-20.0433, 57.5400], [-20.0233, 57.5600]],
+      "polygon": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-20.0433, 57.5400],
+          [-20.0433, 57.5600],
+          [-20.0233, 57.5600],
+          [-20.0233, 57.5400],
+          [-20.0433, 57.5400]
+        ]]
+      }
+    }
+  ]
+}
+

@@ -61,7 +61,29 @@ export default function MapEngineComponent({
       setTimeout(() => {
         map.invalidateSize();
       }, 100);
+      // Also invalidate after a short delay to handle any layout shifts
+      const timeout = setTimeout(() => {
+        map.invalidateSize();
+      }, 500);
+      return () => clearTimeout(timeout);
     }
+  }, [isReady, map]);
+
+  // Invalidate size when container size changes
+  useEffect(() => {
+    if (!isReady || !map || !containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [isReady, map]);
 
   return (

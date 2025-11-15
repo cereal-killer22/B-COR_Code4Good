@@ -37,7 +37,7 @@ export default function ClimaGuardMap({
   };
 
   return (
-    <div className={`w-full h-96 rounded-lg overflow-hidden border border-gray-300 ${className}`}>
+    <div className={`w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300 ${className}`}>
       {mapComponents[type]}
     </div>
   );
