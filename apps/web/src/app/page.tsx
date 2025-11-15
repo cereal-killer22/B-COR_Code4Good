@@ -62,7 +62,7 @@ export default function Home() {
         <div className="text-center py-16">
           <div className="mb-8">
             <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6">
-              🌡️ ClimaGuard
+              🛡️ ClimaGuard
             </h1>
             <h2 className="text-3xl font-semibold text-theme mb-4">
               AI-Powered Climate Risk Platform
@@ -80,7 +80,7 @@ export default function Home() {
             <Button size="lg" onClick={handleViewDashboard} icon="📊">
               View Dashboard
             </Button>
-            <Button variant="outline" size="lg" onClick={handleChat} icon="🌡️">
+            <Button variant="outline" size="lg" onClick={handleChat} icon="💬">
               ClimaWise
             </Button>
           </div>
@@ -142,7 +142,7 @@ export default function Home() {
           <div className="group cursor-pointer" onClick={() => window.location.href = '/chat'}>
             <Card className="hover:shadow-xl transition-all duration-300 border-2 border-cyan-200">
               <div className="text-center">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌡️</div>
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">💬</div>
                 <h3 className="text-lg font-semibold text-cyan-700 mb-2">ClimaWise</h3>
                 <p className="text-sm text-cyan-600">Cyclone, Flood & Ocean AI</p>
               </div>

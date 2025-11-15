@@ -177,13 +177,6 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
             timestamp={msg.timestamp}
           />
         ))}
-        
-        {/* Quick Actions */}
-        {showQuickActions && (
-          <div className="mt-8">
-            <QuickActions onActionClick={handleQuickAction} disabled={isLoading} />
-          </div>
-        )}
 
         {/* Typing Indicator */}
         {isLoading && <TypingIndicator />}
@@ -200,6 +193,13 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
         )}
         <div ref={messagesEndRef} aria-hidden="true" />
       </div>
+
+      {/* Quick Actions - Near Input */}
+      {showQuickActions && (
+        <div className="px-6 pt-4 pb-2 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <QuickActions onActionClick={handleQuickAction} disabled={isLoading} />
+        </div>
+      )}
 
       {/* Input */}
       <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />

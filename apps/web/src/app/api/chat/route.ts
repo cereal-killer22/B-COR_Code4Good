@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { CLIMAGUARD_AI_PROMPT, getChatContext } from '@/lib/ai/agentPrompt';
+import { retrieveRelevantData, formatDataAsContext } from '@/lib/services/supabaseDataRetrieval';
 
 // In-memory chat history (in production, use a database)
 const chatHistory: Map<string, Array<{ role: 'user' | 'assistant'; content: string }>> = new Map();
@@ -34,8 +35,20 @@ export async function POST(request: NextRequest) {
     // Combine provided history with stored history (prefer provided history)
     const conversationHistory = history.length > 0 ? history : userHistory;
 
-    // Call LLM (OpenAI, Claude, or fallback)
-    const reply = await callLLM(message, conversationHistory);
+    // Retrieve relevant data from Supabase knowledge base
+    let knowledgeBaseContext = '';
+    try {
+      const relevantData = await retrieveRelevantData(message, 3); // Get top 3 relevant items
+      if (relevantData.length > 0) {
+        knowledgeBaseContext = formatDataAsContext(relevantData);
+      }
+    } catch (error) {
+      console.error('Error retrieving knowledge base data:', error);
+      // Continue without knowledge base context if retrieval fails
+    }
+
+    // Call LLM with knowledge base context
+    const reply = await callLLM(message, conversationHistory, knowledgeBaseContext);
 
     // Update chat history
     const updatedHistory = [
@@ -67,13 +80,14 @@ export async function POST(request: NextRequest) {
  */
 async function callLLM(
   message: string,
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  knowledgeBaseContext: string = ''
 ): Promise<string> {
   // Try Google Gemini first
   const geminiApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (geminiApiKey && geminiApiKey.length > 0) {
     try {
-      return await callGemini(message, history, geminiApiKey);
+      return await callGemini(message, history, geminiApiKey, knowledgeBaseContext);
     } catch (error) {
       console.error('Gemini API error, falling back to local model:', error);
       // Fall through to local model
@@ -84,7 +98,7 @@ async function callLLM(
   const openAiApiKey = process.env.OPENAI_API_KEY;
   if (openAiApiKey && openAiApiKey.length > 0) {
     try {
-      return await callOpenAI(message, history);
+      return await callOpenAI(message, history, knowledgeBaseContext);
     } catch (error) {
       console.error('OpenAI API error, falling back to local model:', error);
       // Fall through to local model
@@ -92,7 +106,7 @@ async function callLLM(
   }
 
   // Fallback: Use local model or simple response
-  return await callLocalModel(message, history);
+  return await callLocalModel(message, history, knowledgeBaseContext);
 }
 
 /**
@@ -101,7 +115,8 @@ async function callLLM(
 async function callGemini(
   message: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
-  apiKey: string
+  apiKey: string,
+  knowledgeBaseContext: string = ''
 ): Promise<string> {
   // Build conversation history for Gemini
   // Gemini uses alternating user/assistant messages in contents array
@@ -139,7 +154,7 @@ async function callGemini(
       body: JSON.stringify({
         contents: contents,
         systemInstruction: {
-          parts: [{ text: CLIMAGUARD_AI_PROMPT }]
+          parts: [{ text: CLIMAGUARD_AI_PROMPT + (knowledgeBaseContext ? '\n\n' + knowledgeBaseContext : '') }]
         },
         generationConfig: {
           temperature: 0.7, // Balanced for detailed, natural responses
@@ -179,7 +194,8 @@ async function callGemini(
  */
 async function callOpenAI(
   message: string,
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  knowledgeBaseContext: string = ''
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -188,7 +204,7 @@ async function callOpenAI(
 
   // Build messages array
   const messages = [
-    { role: 'system' as const, content: CLIMAGUARD_AI_PROMPT },
+    { role: 'system' as const, content: CLIMAGUARD_AI_PROMPT + (knowledgeBaseContext ? '\n\n' + knowledgeBaseContext : '') },
     ...history.map(msg => ({
       role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
       content: msg.content
@@ -227,60 +243,81 @@ async function callOpenAI(
  */
 async function callLocalModel(
   message: string,
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  knowledgeBaseContext: string = ''
 ): Promise<string> {
   const lowerMessage = message.toLowerCase();
 
-  // Rule-based responses for common queries (CONCISE - 2-3 sentences max)
+  // Detect yes/no questions
+  const isYesNoQuestion = /^(is|are|can|do|does|did|will|would|should|has|have|was|were|may|might)\s/i.test(message.trim());
+
+  // Rule-based responses for common queries (CONCISE - 2-3 sentences max with follow-up questions)
   if (lowerMessage.includes('cyclone') || lowerMessage.includes('hurricane')) {
+    if (isYesNoQuestion && (lowerMessage.includes('can') || lowerMessage.includes('form') || lowerMessage.includes('happen'))) {
+      return "Yes, cyclones can form near Mauritius during the cyclone season from November to May, when ocean temperatures are warm enough. The island is in the Indian Ocean cyclone basin, so it's important to stay prepared. Would you like to know the warning signs to watch for?";
+    }
     if (lowerMessage.includes('expected') || lowerMessage.includes('coming') || lowerMessage.includes('this week')) {
-      return "Check the ClimaGuard dashboard for current predictions. Always follow official alerts from Mauritius Meteorological Services.";
+      return "No, there's no cyclone predicted this week, but stay updated with local alerts from Mauritius Meteorological Services, especially during cyclone season (November to May). Would you like to know how to prepare an emergency kit in case a warning is issued?";
     }
     if (lowerMessage.includes('prepare') || lowerMessage.includes('what should i do')) {
-      return "Stock up on essentials, secure your home, and have an evacuation plan ready. Monitor official weather updates closely.";
+      return "Stock up on essentials, secure your home, and have an evacuation plan ready. Monitor official weather updates closely. What specific aspect of cyclone preparedness would you like to learn more about?";
     }
-    return "Cyclones are powerful tropical storms that form over warm ocean waters. For current alerts, check Mauritius Meteorological Services or the ClimaGuard dashboard.";
+    return "Cyclones are powerful tropical storms that form over warm ocean waters. For current alerts, check Mauritius Meteorological Services or the ClimaGuard dashboard. Would you like to know the warning signs to watch for?";
   }
 
   if (lowerMessage.includes('flood') || lowerMessage.includes('inundation')) {
     if (lowerMessage.includes('what should i do') || lowerMessage.includes('during') || lowerMessage.includes('happening')) {
-      return "Move to higher ground immediately and follow local emergency instructions. Avoid walking or driving through floodwaters.";
+      return "Move to higher ground immediately and follow local emergency instructions. Avoid walking or driving through floodwaters, as even shallow water can be dangerous. Do you have an evacuation plan ready?";
     }
     if (lowerMessage.includes('prepare') || lowerMessage.includes('how to')) {
-      return "Know your area's flood risk and have an evacuation plan ready. Keep important documents in waterproof containers.";
+      return "Know your area's flood risk and have an evacuation plan ready. Keep important documents in waterproof containers. Would you like to know more about flood warning systems?";
     }
-    return "Floods can occur during heavy rainfall or cyclones. Use ClimaGuard's FloodSense for real-time predictions and check MoESDDBM for official warnings.";
+    return "Floods can occur during heavy rainfall or cyclones. Use ClimaGuard's FloodSense for real-time predictions and check MoESDDBM for official warnings. Are you interested in learning about flood safety measures?";
   }
 
   if (lowerMessage.includes('coral') || lowerMessage.includes('reef') || lowerMessage.includes('bleaching')) {
     if (lowerMessage.includes('how is') || lowerMessage.includes('status') || lowerMessage.includes('health')) {
-      return "Some areas are stressed due to bleaching, but marine parks are helping protect them. Check the ClimaGuard Ocean Health dashboard for current metrics.";
+      return "Some areas are experiencing bleaching due to rising sea temperatures, but marine protected areas and conservation efforts are helping protect reef health. Are you interested in learning specific ways you can help protect coral reefs?";
     }
     if (lowerMessage.includes('protect') || lowerMessage.includes('help')) {
-      return "Avoid touching corals, use reef-safe sunscreen, and practice sustainable fishing. Reducing pollution and runoff also helps protect reefs.";
+      return "Avoid touching corals, use reef-safe sunscreen, and practice sustainable fishing. Reducing pollution and runoff also helps protect reefs. Would you like to know more about coral reef conservation efforts in Mauritius?";
     }
-    return "Coral reefs are vital marine ecosystems. Bleaching occurs when corals are stressed by high temperatures or pollution. Check ClimaGuard's reef health dashboard for predictions.";
+    return "Coral reefs are vital marine ecosystems. Bleaching occurs when corals are stressed by high temperatures or pollution. Check ClimaGuard's reef health dashboard for predictions. What would you like to know about reef health?";
   }
 
   if (lowerMessage.includes('ocean') || lowerMessage.includes('marine') || lowerMessage.includes('water quality')) {
-    if (lowerMessage.includes('pollution') || lowerMessage.includes('contamination')) {
-      return "Ocean pollution includes plastic waste, oil spills, and chemical contamination. Check ClimaGuard's pollution detection feature for real-time monitoring.";
+    if (isYesNoQuestion && (lowerMessage.includes('safe') || lowerMessage.includes('swim') || lowerMessage.includes('swimming'))) {
+      return "Yes, generally the ocean is safe for swimming in Mauritius, but always check current conditions and any posted warnings. Avoid swimming during rough weather or after heavy rainfall when water quality may be affected. Are you planning to visit a specific beach area?";
     }
-    return "Ocean health covers water quality, pollution levels, and marine biodiversity. Check ClimaGuard's Ocean Health dashboard for comprehensive metrics and real-time data.";
+    if (lowerMessage.includes('pollution') || lowerMessage.includes('contamination')) {
+      return "Ocean pollution includes plastic waste, oil spills, and chemical contamination. Check ClimaGuard's pollution detection feature for real-time monitoring. Would you like to learn about ways to reduce ocean pollution?";
+    }
+    return "Ocean health covers water quality, pollution levels, and marine biodiversity. Check ClimaGuard's Ocean Health dashboard for comprehensive metrics and real-time data. What aspect of ocean health interests you most?";
   }
 
   if (lowerMessage.includes('preparedness') || lowerMessage.includes('emergency') || lowerMessage.includes('safety')) {
-    if (lowerMessage.includes('kit') || lowerMessage.includes('supplies')) {
-      return "Prepare an emergency kit with water, non-perishable food, flashlight, batteries, first aid, and important documents. Keep it ready and accessible.";
+    if (isYesNoQuestion && (lowerMessage.includes('need') || lowerMessage.includes('should') || lowerMessage.includes('important'))) {
+      return "Yes, emergency preparedness is very important, especially in Mauritius where cyclones and floods can occur. Having a plan and supplies ready can save lives. Would you like to know what to include in your emergency kit?";
     }
-    return "Have an evacuation plan ready, stay informed through ClimaGuard alerts and official sources, and always follow guidance from Mauritius Meteorological Services during emergencies.";
+    if (lowerMessage.includes('kit') || lowerMessage.includes('supplies')) {
+      return "Prepare an emergency kit with water, non-perishable food, flashlight, batteries, first aid, and important documents. Keep it ready and accessible. Would you like to know how often to check and update your emergency kit?";
+    }
+    return "Have an evacuation plan ready, stay informed through ClimaGuard alerts and official sources, and always follow guidance from Mauritius Meteorological Services during emergencies. What specific emergency preparedness topic would you like to explore?";
   }
 
   if (lowerMessage.includes('heatwave') || lowerMessage.includes('heat') || lowerMessage.includes('temperature')) {
-    return "Stay hydrated, avoid peak sun hours (10 AM - 4 PM), and wear light clothing. Watch for signs of heat exhaustion like heavy sweating or dizziness.";
+    if (isYesNoQuestion && (lowerMessage.includes('dangerous') || lowerMessage.includes('safe'))) {
+      return "Yes, extreme heat can be dangerous, especially for vulnerable groups like children and elderly. Stay hydrated, avoid peak sun hours (10 AM - 4 PM), and seek shade when possible. Would you like to know more about protecting yourself during extreme heat?";
+    }
+    return "Stay hydrated, avoid peak sun hours (10 AM - 4 PM), and wear light clothing. Watch for signs of heat exhaustion like heavy sweating or dizziness. Would you like to know more about protecting yourself during extreme heat?";
   }
 
-  // Default response (concise)
-  return "I'm ClimaWise, your assistant for cyclones, floods, and ocean health. What would you like to know? I can help with safety tips, current risks, or ocean health information.";
+  // Handle generic yes/no questions
+  if (isYesNoQuestion) {
+    return "I'd be happy to help! Could you provide more details about what you're asking? I can assist with cyclone information, flood safety, ocean health, and emergency preparedness. What specific topic would you like to know more about?";
+  }
+
+  // Default response (concise with follow-up)
+  return "I'm ClimaWise, your assistant for cyclones, floods, and ocean health. What would you like to know? I can help with safety tips, current risks, or ocean health information. What topic interests you most?";
 }
 

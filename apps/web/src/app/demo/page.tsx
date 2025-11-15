@@ -317,7 +317,7 @@ export default function DemoPage() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-blue-600">🌡️ ClimaGuard</h1>
+              <h1 className="text-2xl font-bold text-blue-600">🛡️ ClimaGuard</h1>
               <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
                 Code4Good 2024 Demo
               </div>

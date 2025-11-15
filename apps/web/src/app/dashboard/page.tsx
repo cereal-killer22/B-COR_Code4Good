@@ -243,7 +243,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-theme" style={{ background: 'linear-gradient(to bottom right, var(--background-secondary), var(--background))' }}>
       {/* Header */}
       <PageHeader 
-        title="🌡️ ClimaGuard" 
+        title="🛡️ ClimaGuard" 
         subtitle="AI-Powered Climate Risk Platform for Mauritius"
       >
         <LiveTimeDisplay />

@@ -187,4 +187,4 @@ This structure supports the Code4Good demo requirements while being production-r
 
 ---
 
-🌡️ **ClimaGuard** - Protecting communities through AI-powered climate risk prediction
+🛡️ **ClimaGuard** - Protecting communities through AI-powered climate risk prediction
