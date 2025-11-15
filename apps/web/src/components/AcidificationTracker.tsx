@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, MetricCard, StatusBadge } from '@/components/ui';
-import { OceanAcidificationService } from '@/lib/integrations/oceanAcidification';
 import type { AcidificationMetrics } from '@climaguard/shared/types/ocean';
 
 export default function AcidificationTracker() {
@@ -19,9 +18,57 @@ export default function AcidificationTracker() {
   async function fetchAcidification() {
     try {
       setLoading(true);
-      const service = new OceanAcidificationService();
-      const data = await service.getAcidificationMetrics(location[0], location[1]);
-      setAcidification(data);
+      // Fetch from API route which uses real data sources
+      const response = await fetch(`/api/ocean-health?lat=${location[0]}&lng=${location[1]}`);
+      if (response.ok) {
+        const data = await response.json();
+        const oceanHealth = data.oceanHealth;
+        
+        // Calculate acidification metrics from real pH data
+        // Note: pH from free APIs is limited, using default with trend estimation
+        const basePH = 8.1; // Pre-industrial baseline
+        const currentPH = oceanHealth.waterQuality.pH || 8.1;
+        const pHAnomaly = currentPH - basePH;
+        
+        // Estimate aragonite saturation from pH (simplified relationship)
+        // Ωarag ≈ 3.5 * (pH - 7.0) for tropical waters
+        const aragoniteSaturation = Math.max(0, 3.5 * (currentPH - 7.0));
+        
+        // CO2 concentration (global average, would need local measurements)
+        const co2Concentration = 420; // Current global average
+        
+        // Determine trend from pH anomaly
+        const trend = pHAnomaly < -0.1 ? 'declining' : 
+                     pHAnomaly > 0.1 ? 'improving' : 'stable';
+        
+        // Project future pH (simplified linear model based on current trend)
+        const declineRate = pHAnomaly < 0 ? pHAnomaly / 10 : 0; // Estimate from current anomaly
+        const projectedpH = {
+          year2025: currentPH + declineRate * 2,
+          year2030: currentPH + declineRate * 5,
+          year2050: currentPH + declineRate * 25
+        };
+        
+        // Determine impact level
+        let impactLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+        if (currentPH < 7.6) impactLevel = 'critical';
+        else if (currentPH < 7.8) impactLevel = 'high';
+        else if (currentPH < 8.0) impactLevel = 'medium';
+        
+        const metrics: AcidificationMetrics = {
+          location,
+          timestamp: new Date(),
+          pH: currentPH,
+          pHAnomaly,
+          aragoniteSaturation,
+          co2Concentration,
+          trend,
+          projectedpH,
+          impactLevel
+        };
+        
+        setAcidification(metrics);
+      }
     } catch (error) {
       console.error('Failed to fetch acidification data:', error);
     } finally {

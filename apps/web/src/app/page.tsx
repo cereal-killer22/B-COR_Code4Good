@@ -1,12 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, StatusBadge, MetricCard, Button } from '@/components/ui';
 
 export default function Home() {
-  const [currentTemp] = useState(24);
-  const [currentHumidity] = useState(65);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [temperatureUnit, setTemperatureUnit] = useState<'C' | 'F'>('C');
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const response = await fetch('/api/weather/current?lat=-20.2&lng=57.5');
+        if (response.ok) {
+          const data = await response.json();
+          setWeatherData(data.weather);
+        }
+      } catch (error) {
+        console.error('Failed to fetch weather:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 300000); // Update every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentTemp = weatherData?.temperature || 0;
+  const currentHumidity = weatherData?.humidity || 0;
   
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {

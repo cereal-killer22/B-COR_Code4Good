@@ -102,10 +102,11 @@ export default function BiodiversityPanel() {
       </div>
       
       {/* Species List */}
-      <div className="mb-6">
-        <h3 className="font-semibold text-theme mb-3">Key Species</h3>
-        <div className="space-y-2">
-          {biodiversity.speciesList.slice(0, 8).map((species, idx) => (
+      {biodiversity.speciesList && biodiversity.speciesList.length > 0 ? (
+        <div className="mb-6">
+          <h3 className="font-semibold text-theme mb-3">Key Species</h3>
+          <div className="space-y-2">
+            {biodiversity.speciesList.slice(0, 8).map((species, idx) => (
             <div
               key={idx}
               className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
@@ -124,8 +125,16 @@ export default function BiodiversityPanel() {
               </StatusBadge>
             </div>
           ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-theme-secondary text-center">
+            Species data requires biodiversity database access (not available in free APIs).
+            Biodiversity index calculated from real chlorophyll and water quality data.
+          </p>
+        </div>
+      )}
       
       {/* Habitat Health */}
       <div>

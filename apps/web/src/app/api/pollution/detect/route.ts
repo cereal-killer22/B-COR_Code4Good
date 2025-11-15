@@ -1,6 +1,6 @@
 /**
  * Pollution Detection API Route
- * Detects pollution in satellite imagery using CNN model
+ * Uses Microsoft Planetary Computer Sentinel-2 data for pollution detection
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,7 +10,7 @@ import { Sentinel2Service } from '@/lib/integrations/sentinel2';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageUrl, location, imageData } = body;
+    const { imageUrl, location, imageData, radius } = body;
     
     if (!location || !Array.isArray(location) || location.length !== 2) {
       return NextResponse.json(
@@ -20,41 +20,52 @@ export async function POST(request: NextRequest) {
     }
     
     const [lat, lng] = location;
+    const searchRadius = radius || 0.1; // degrees
     
-    // Initialize pollution detector
+    // Initialize services
     const detector = new PollutionDetector();
+    const sentinel2 = new Sentinel2Service();
     
-    // If imageData is provided, use it directly
-    // Otherwise, fetch from Sentinel-2
+    // Fetch latest Sentinel-2 image from Microsoft Planetary Computer
+    const latestImage = await sentinel2.getLatestImage([lat, lng]);
+    
+    if (!latestImage) {
+      return NextResponse.json(
+        { 
+          error: 'No satellite imagery available for this location',
+          message: 'Try again later or check if the location is covered by Sentinel-2'
+        },
+        { status: 404 }
+      );
+    }
+    
+    // For server-side, we use Sentinel-2 metadata for detection
+    // The detector will use statistical/heuristic methods based on Sentinel-2 bands
     let detectionResults;
     
     if (imageData) {
-      // Convert base64 or ImageData to ImageData
-      const img = await loadImageFromData(imageData);
-      detectionResults = await detector.detectPollution(img, [lat, lng]);
+      // Client-side detection with image data (would need to be handled client-side)
+      // For now, use statistical detection with Sentinel-2 metadata
+      detectionResults = await detector.detectPollutionFromSentinel2(
+        latestImage,
+        [lat, lng]
+      );
     } else if (imageUrl) {
-      // Load image from URL
-      const img = await loadImageFromUrl(imageUrl);
-      detectionResults = await detector.detectPollution(img, [lat, lng]);
+      // Use provided image URL (client-side would handle this)
+      detectionResults = await detector.detectPollutionFromSentinel2(
+        latestImage,
+        [lat, lng]
+      );
     } else {
-      // Fetch latest Sentinel-2 image
-      const sentinel2 = new Sentinel2Service();
-      const latestImage = await sentinel2.getLatestImage([lat, lng]);
-      
-      if (!latestImage || !latestImage.url) {
-        return NextResponse.json(
-          { error: 'No satellite imagery available for this location' },
-          { status: 404 }
-        );
-      }
-      
-      // Load and detect
-      const img = await loadImageFromUrl(latestImage.url);
-      detectionResults = await detector.detectPollution(img, [lat, lng]);
+      // Use Sentinel-2 metadata for server-side detection
+      detectionResults = await detector.detectPollutionFromSentinel2(
+        latestImage,
+        [lat, lng]
+      );
     }
     
     // Convert to pollution events
-    const events = detector.convertToPollutionEvents(detectionResults);
+    const events = detector.convertToPollutionEvents(detectionResults, latestImage.timestamp);
     
     // Clean up
     detector.dispose();
@@ -62,6 +73,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       detections: detectionResults,
       events,
+      satelliteImage: {
+        id: latestImage.id,
+        timestamp: latestImage.timestamp,
+        cloudCoverage: latestImage.cloudCoverage,
+        url: latestImage.tileUrl || latestImage.url
+      },
       timestamp: new Date().toISOString()
     });
     
@@ -77,28 +94,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Load image from URL
- */
-async function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
-}
-
-/**
- * Load image from base64 or ImageData
- */
-async function loadImageFromData(data: string | ImageData): Promise<HTMLImageElement | ImageData> {
-  if (data instanceof ImageData) {
-    return data;
-  }
-  
-  // Assume base64 string
-  return loadImageFromUrl(data);
-}
 

@@ -116,28 +116,98 @@ export class CoralBleachingPredictor {
   }
   
   /**
-   * Predict bleaching risk based on current conditions and historical data
+   * Predict bleaching risk based on real NOAA data (SST, HotSpot, DHW)
+   * Uses NOAA Coral Reef Watch data for accurate predictions
    */
   async predictBleachingRisk(
-    temperature: number,
-    pH: number,
-    historicalData: number[] = []
+    sst: number,
+    sstAnomaly: number,
+    degreeHeatingWeeks: number,
+    hotspot: number,
+    pH: number = 8.1,
+    historicalSST: number[] = []
   ): Promise<CoralBleachingPrediction> {
     await this.initializeModel();
     
-    // Calculate risk using statistical methods (model can be trained later)
-    const riskScore = this.calculateRisk(temperature, pH, historicalData);
-    const daysToBleaching = this.estimateDaysToBleaching(temperature, pH, riskScore);
+    // Calculate risk using NOAA thresholds and real data
+    const riskScore = this.calculateRiskFromNOAAData(
+      sst,
+      sstAnomaly,
+      degreeHeatingWeeks,
+      hotspot,
+      pH,
+      historicalSST
+    );
+    const daysToBleaching = this.estimateDaysToBleaching(sst, pH, riskScore, degreeHeatingWeeks);
     
     return {
       riskLevel: this.getRiskLevel(riskScore),
       probability: Math.min(1, Math.max(0, riskScore)),
       daysToBleaching: daysToBleaching > 0 ? daysToBleaching : undefined,
-      temperature,
+      temperature: sst,
       pH,
-      recommendations: this.getRecommendations(riskScore, temperature, pH),
-      confidence: this.calculateConfidence(historicalData.length)
+      recommendations: this.getRecommendations(riskScore, sst, pH, degreeHeatingWeeks),
+      confidence: this.calculateConfidence(historicalSST.length, degreeHeatingWeeks)
     };
+  }
+  
+  /**
+   * Calculate risk using NOAA Coral Reef Watch methodology
+   */
+  private calculateRiskFromNOAAData(
+    sst: number,
+    sstAnomaly: number,
+    dhw: number,
+    hotspot: number,
+    pH: number,
+    historicalSST: number[]
+  ): number {
+    let riskScore = 0;
+    
+    // NOAA DHW-based risk (primary indicator)
+    // DHW >= 12: Severe bleaching likely
+    // DHW >= 8: High risk
+    // DHW >= 4: Moderate risk
+    // DHW >= 1: Low risk
+    if (dhw >= 12) {
+      riskScore += 0.5; // 50% base risk from DHW
+    } else if (dhw >= 8) {
+      riskScore += 0.35;
+    } else if (dhw >= 4) {
+      riskScore += 0.2;
+    } else if (dhw >= 1) {
+      riskScore += 0.1;
+    }
+    
+    // HotSpot component (current temperature stress)
+    if (hotspot >= 2) {
+      riskScore += 0.3; // High current stress
+    } else if (hotspot >= 1) {
+      riskScore += 0.15;
+    } else if (hotspot > 0) {
+      riskScore += 0.05;
+    }
+    
+    // SST anomaly component
+    if (sstAnomaly >= 2) {
+      riskScore += 0.15;
+    } else if (sstAnomaly >= 1) {
+      riskScore += 0.1;
+    } else if (sstAnomaly > 0) {
+      riskScore += 0.05;
+    }
+    
+    // pH component (acidification stress)
+    const pHRisk = this.calculatePHRisk(pH);
+    riskScore += pHRisk * 0.1; // 10% weight
+    
+    // Historical trend component
+    if (historicalSST.length >= 7) {
+      const trendRisk = this.analyzeTrend(historicalSST);
+      riskScore += trendRisk * 0.05; // 5% weight
+    }
+    
+    return Math.min(1, riskScore);
   }
   
   /**
@@ -223,20 +293,31 @@ export class CoralBleachingPredictor {
   }
   
   /**
-   * Estimate days until potential bleaching
+   * Estimate days until potential bleaching using DHW
    */
   private estimateDaysToBleaching(
     temp: number,
     pH: number,
-    riskScore: number
+    riskScore: number,
+    dhw: number
   ): number {
     if (riskScore < 0.6) return -1; // No imminent risk
     
-    // Estimate based on how far above thresholds
-    const tempExcess = Math.max(0, temp - this.thresholds.temperature.high);
-    const days = Math.max(1, Math.round(30 / (1 + tempExcess * 2)));
+    // Use DHW to estimate timeline
+    // DHW accumulates over time, so higher DHW = closer to bleaching
+    if (dhw >= 12) {
+      return 1; // Imminent (within days)
+    } else if (dhw >= 8) {
+      return 7; // Within a week
+    } else if (dhw >= 4) {
+      return 14; // Within 2 weeks
+    } else if (dhw >= 1) {
+      return 30; // Within a month
+    }
     
-    return days;
+    // Fallback: estimate based on temperature excess
+    const tempExcess = Math.max(0, temp - this.thresholds.temperature.high);
+    return Math.max(1, Math.round(30 / (1 + tempExcess * 2)));
   }
   
   /**
@@ -250,32 +331,39 @@ export class CoralBleachingPredictor {
   }
   
   /**
-   * Generate recommendations based on risk
+   * Generate recommendations based on risk and NOAA data
    */
   private getRecommendations(
     score: number,
     temp: number,
-    pH: number
+    pH: number,
+    dhw: number
   ): string[] {
     const recommendations: string[] = [];
     
-    if (score > 0.8) {
-      recommendations.push('🚨 URGENT: Implement emergency protection measures');
+    if (score > 0.8 || dhw >= 12) {
+      recommendations.push('🚨 URGENT: Severe bleaching risk detected (DHW ≥ 12)');
+      recommendations.push('Implement emergency protection measures immediately');
       recommendations.push('Consider temporary fishing restrictions in affected areas');
       recommendations.push('Deploy shading or cooling interventions if feasible');
       recommendations.push('Increase monitoring frequency to daily');
-    } else if (score > 0.6) {
-      recommendations.push('⚠️ HIGH RISK: Reduce local stressors (fishing, pollution)');
+      recommendations.push('Alert marine park authorities and research institutions');
+    } else if (score > 0.6 || dhw >= 8) {
+      recommendations.push('⚠️ HIGH RISK: Significant bleaching risk (DHW ≥ 8)');
+      recommendations.push('Reduce local stressors (fishing, pollution, tourism)');
       recommendations.push('Increase shading or cooling measures');
       recommendations.push('Monitor reef health daily');
       recommendations.push('Prepare emergency response protocols');
-    } else if (score > 0.3) {
-      recommendations.push('Monitor temperature trends closely');
+      recommendations.push('Coordinate with local conservation groups');
+    } else if (score > 0.3 || dhw >= 4) {
+      recommendations.push('⚠️ MODERATE RISK: Monitor temperature trends closely');
       recommendations.push('Reduce non-climate stressors');
-      recommendations.push('Maintain regular reef health assessments');
+      recommendations.push('Maintain regular reef health assessments (weekly)');
+      recommendations.push('Prepare for potential escalation');
     } else {
-      recommendations.push('Continue regular monitoring');
+      recommendations.push('✅ LOW RISK: Continue regular monitoring');
       recommendations.push('Maintain good water quality standards');
+      recommendations.push('Monitor NOAA Coral Reef Watch alerts');
     }
     
     // Add pH-specific recommendations
@@ -283,17 +371,29 @@ export class CoralBleachingPredictor {
       recommendations.push('Address ocean acidification through local CO₂ reduction');
     }
     
+    // Add DHW-specific guidance
+    if (dhw > 0 && dhw < 4) {
+      recommendations.push('DHW accumulating - monitor closely for rapid changes');
+    }
+    
     return recommendations;
   }
   
   /**
-   * Calculate prediction confidence based on data availability
+   * Calculate prediction confidence based on data availability and NOAA data quality
    */
-  private calculateConfidence(dataPoints: number): number {
-    if (dataPoints >= 30) return 0.9;
-    if (dataPoints >= 14) return 0.7;
-    if (dataPoints >= 7) return 0.5;
-    return 0.3;
+  private calculateConfidence(dataPoints: number, dhw: number): number {
+    let confidence = 0.5; // Base confidence
+    
+    // Increase confidence with more historical data
+    if (dataPoints >= 30) confidence += 0.3;
+    else if (dataPoints >= 14) confidence += 0.2;
+    else if (dataPoints >= 7) confidence += 0.1;
+    
+    // Higher confidence when using real NOAA DHW data
+    if (dhw > 0) confidence += 0.2;
+    
+    return Math.min(0.95, confidence);
   }
   
   /**

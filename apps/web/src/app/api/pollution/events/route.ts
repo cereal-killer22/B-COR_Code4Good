@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // Create new pollution event (would save to database in production)
     const newEvent: PollutionEvent = {
-      id: `pollution-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `pollution-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
       type: event.type,
       location: event.location,
       severity: event.severity,
@@ -91,59 +91,46 @@ async function fetchPollutionEvents(
   radius: number = 1.0,
   status?: PollutionEvent['status'] | null
 ): Promise<PollutionEvent[]> {
-  // Mock data - would query database in production
-  const mockEvents: PollutionEvent[] = [
-    {
-      id: 'poll-1',
-      type: 'plastic',
-      location: [-20.0, 57.5],
-      severity: 'medium',
-      detectedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      affectedArea: 1.5,
-      predictedSpread: [
-        [-20.1, 57.4],
-        [-20.1, 57.6],
-        [-19.9, 57.6],
-        [-19.9, 57.4]
-      ],
-      status: 'detected',
-      source: 'Sentinel-2 satellite imagery'
-    },
-    {
-      id: 'poll-2',
-      type: 'oil_spill',
-      location: [-20.2, 57.7],
-      severity: 'high',
-      detectedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-      affectedArea: 3.2,
-      predictedSpread: [
-        [-20.3, 57.6],
-        [-20.3, 57.8],
-        [-20.1, 57.8],
-        [-20.1, 57.6]
-      ],
-      status: 'confirmed',
-      source: 'Automated detection system'
-    }
-  ];
+  // Fetch real pollution events from Sentinel-2 detection
+  const { Sentinel2Service } = await import('@/lib/integrations/sentinel2');
+  const { PollutionDetector } = await import('@/lib/models/pollutionDetector');
   
-  // Filter by location if provided
-  let filtered = mockEvents;
+  const events: PollutionEvent[] = [];
+  
+  // If location provided, detect pollution in that area
   if (lat !== undefined && lng !== undefined) {
-    filtered = filtered.filter(event => {
-      const [eventLat, eventLng] = event.location;
-      const distance = Math.sqrt(
-        Math.pow(eventLat - lat, 2) + Math.pow(eventLng - lng, 2)
-      );
-      return distance <= radius;
-    });
+    try {
+      const sentinel2 = new Sentinel2Service();
+      const detector = new PollutionDetector();
+      
+      // Search for recent Sentinel-2 images
+      const images = await sentinel2.searchImages([lat, lng], radius);
+      
+      // Detect pollution in each image
+      for (const image of images.slice(0, 5)) { // Limit to 5 most recent
+        if (image.cloudCoverage < 30) { // Only use low cloud coverage images
+          try {
+            const detections = await detector.detectPollutionFromSentinel2(image, [lat, lng]);
+            const imageEvents = detector.convertToPollutionEvents(detections, image.timestamp);
+            events.push(...imageEvents);
+          } catch (error) {
+            console.warn('Error detecting pollution in image:', error);
+          }
+        }
+      }
+      
+      detector.dispose();
+    } catch (error) {
+      console.error('Error fetching pollution events from Sentinel-2:', error);
+      // Return empty array - no mock data
+    }
   }
   
   // Filter by status if provided
   if (status) {
-    filtered = filtered.filter(event => event.status === status);
+    return events.filter(event => event.status === status);
   }
   
-  return filtered;
+  return events;
 }
 

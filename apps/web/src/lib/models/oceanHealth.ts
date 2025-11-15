@@ -66,53 +66,10 @@ export function calculateOceanHealthIndex(
 }
 
 /**
- * Generate realistic fallback ocean health data for a location
+ * REMOVED: generateFallbackOceanHealth
+ * All data must come from real APIs - no fallback mock data allowed
+ * If APIs fail, throw errors instead of returning fake data
  */
-export function generateFallbackOceanHealth(
-  lat: number,
-  lng: number
-): OceanHealthMetrics {
-  // Base values for Mauritius region
-  const baseTemp = 28.5;
-  const basePH = 8.1;
-  const baseSalinity = 35.2;
-
-  // Add some realistic variation
-  const variation = (base: number, range: number) => 
-    base + (Math.random() - 0.5) * range;
-
-  return {
-    location: [lat, lng],
-    timestamp: new Date(),
-    waterQuality: {
-      pH: variation(basePH, 0.2),
-      temperature: variation(baseTemp, 2),
-      salinity: variation(baseSalinity, 1),
-      dissolvedOxygen: variation(6.5, 1),
-      turbidity: variation(0.3, 0.2),
-      score: 80 + Math.random() * 15
-    },
-    pollution: {
-      plasticDensity: Math.random() * 2,
-      oilSpillRisk: Math.random() * 20,
-      chemicalPollution: Math.random() * 15,
-      overallIndex: 75 + Math.random() * 20
-    },
-    biodiversity: {
-      speciesCount: 1000 + Math.floor(Math.random() * 500),
-      endangeredSpecies: Math.floor(Math.random() * 10),
-      biodiversityIndex: 70 + Math.random() * 20
-    },
-    reefHealth: {
-      bleachingRisk: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-      healthIndex: 75 + Math.random() * 20,
-      temperature: variation(baseTemp, 1.5),
-      pH: variation(basePH, 0.15),
-      coverage: 30 + Math.random() * 30
-    },
-    overallHealthScore: 75 + Math.random() * 20
-  };
-}
 
 /**
  * Validate ocean health metrics

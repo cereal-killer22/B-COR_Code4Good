@@ -14,16 +14,26 @@ const MapWithNoSSR = dynamic(() => import('./MapComponent'), {
   ),
 });
 
-export default function PollutionMap() {
+interface PollutionMapProps {
+  location?: [number, number];
+  onLocationChange?: (location: [number, number]) => void;
+}
+
+export default function PollutionMap({ 
+  location = [-20.0, 57.5],
+  onLocationChange 
+}: PollutionMapProps = {}) {
   const [events, setEvents] = useState<PollutionEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detecting, setDetecting] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<PollutionEvent | null>(null);
+  const [satelliteInfo, setSatelliteInfo] = useState<any>(null);
   
   useEffect(() => {
     fetchPollutionEvents();
-    const interval = setInterval(fetchPollutionEvents, 60000); // 1 min
+    const interval = setInterval(fetchPollutionEvents, 300000); // 5 min
     return () => clearInterval(interval);
-  }, []);
+  }, [location]);
   
   async function fetchPollutionEvents() {
     try {
@@ -37,6 +47,36 @@ export default function PollutionMap() {
       console.error('Failed to fetch pollution events:', error);
     } finally {
       setLoading(false);
+    }
+  }
+  
+  async function triggerDetection() {
+    try {
+      setDetecting(true);
+      const response = await fetch('/api/pollution/detect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          location,
+          radius: 0.1
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.events && data.events.length > 0) {
+          setEvents(prev => [...data.events, ...prev]);
+        }
+        if (data.satelliteImage) {
+          setSatelliteInfo(data.satelliteImage);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to detect pollution:', error);
+    } finally {
+      setDetecting(false);
     }
   }
   
@@ -73,10 +113,44 @@ export default function PollutionMap() {
       <Card>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-theme">🚨 Pollution Events</h2>
-          <StatusBadge status={events.length > 0 ? 'warning' : 'success'}>
-            {events.length} Active Event{events.length !== 1 ? 's' : ''}
-          </StatusBadge>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={triggerDetection}
+              disabled={detecting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {detecting ? 'Detecting...' : '🔍 Detect Pollution'}
+            </button>
+            <StatusBadge status={events.length > 0 ? 'warning' : 'success'}>
+              {events.length} Active Event{events.length !== 1 ? 's' : ''}
+            </StatusBadge>
+          </div>
         </div>
+        
+        {/* Satellite Info */}
+        {satelliteInfo && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-theme">Latest Sentinel-2 Image</div>
+                <div className="text-xs text-theme-secondary">
+                  {new Date(satelliteInfo.timestamp).toLocaleString()} • 
+                  Cloud Coverage: {satelliteInfo.cloudCoverage.toFixed(0)}%
+                </div>
+              </div>
+              {satelliteInfo.url && (
+                <a
+                  href={satelliteInfo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  View Image →
+                </a>
+              )}
+            </div>
+          </div>
+        )}
         
         {events.length === 0 ? (
           <div className="text-center py-12 text-theme-secondary">

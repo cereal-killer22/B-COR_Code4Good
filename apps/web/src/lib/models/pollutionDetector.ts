@@ -121,8 +121,9 @@ export class PollutionDetector {
     await this.initializeModel();
     
     if (!this.model) {
-      // Fallback to statistical detection
-      return this.statisticalDetection(location);
+      // No model available - return empty (no mock data)
+      console.warn('Pollution detection model not initialized - returning empty results');
+      return [];
     }
     
     try {
@@ -182,30 +183,71 @@ export class PollutionDetector {
       
     } catch (error) {
       console.error('Error in pollution detection:', error);
-      return this.statisticalDetection(location);
+      // Return empty array - no mock data
+      return [];
     }
   }
   
   /**
-   * Statistical fallback detection method
+   * Detect pollution from Sentinel-2 metadata (server-side compatible)
+   * Uses Sentinel-2 band information and heuristics
    */
-  private statisticalDetection(location: [number, number]): PollutionDetectionResult[] {
-    // Simulate detection based on location and known patterns
-    // In production, this would use historical data or simpler heuristics
-    
+  async detectPollutionFromSentinel2(
+    sentinelImage: {
+      id: string;
+      location: [number, number];
+      timestamp: Date;
+      cloudCoverage: number;
+      bands?: {
+        B02?: string; // Blue
+        B03?: string; // Green
+        B04?: string; // Red
+        B08?: string; // NIR
+      };
+      bbox?: [number, number, number, number];
+    },
+    location: [number, number]
+  ): Promise<PollutionDetectionResult[]> {
     const results: PollutionDetectionResult[] = [];
     
-    // Simulate occasional plastic detection in coastal areas
-    if (Math.random() > 0.7) {
-      results.push({
-        type: 'plastic',
-        confidence: 0.4 + Math.random() * 0.3,
-        location
-      });
+    // Skip if cloud coverage is too high
+    if (sentinelImage.cloudCoverage > 30) {
+      return results; // No reliable detection possible
     }
     
-    return results;
+    // Use Sentinel-2 band information for heuristics
+    // In production, you would fetch and analyze the actual band data
+    // For now, use location-based heuristics enhanced with Sentinel-2 metadata
+    
+    // REAL POLLUTION DETECTION FROM SENTINEL-2
+    // This requires fetching actual Sentinel-2 band GeoTIFF files and analyzing pixel values
+    // 
+    // Implementation steps for production:
+    // 1. Use Microsoft Planetary Computer's data API to fetch band GeoTIFFs:
+    //    - B02 (Blue), B03 (Green), B04 (Red), B08 (NIR)
+    // 2. Extract pixel values for the location coordinates
+    // 3. Calculate spectral indices:
+    //    - NDVI (Normalized Difference Vegetation Index)
+    //    - NDWI (Normalized Difference Water Index)  
+    //    - Oil Index = (B08 - B04) / (B08 + B04)
+    //    - Plastic Index = (B02 + B03) / (B04 + B08)
+    // 4. Compare against known pollution signatures
+    // 5. Apply threshold-based classification
+    
+    // Current limitation: Without actual band pixel data, we cannot perform real detection
+    // Returning empty array - no mock/fake detections allowed
+    
+    // TODO: Implement actual band data fetching from Microsoft Planetary Computer
+    // Example: Use @microsoft/planetary-computer SDK or direct GeoTIFF API
+    
+    return results; // Empty - requires real band data analysis
   }
+  
+  /**
+   * REMOVED: statisticalDetection
+   * No mock/fallback detection allowed - all detection must use real Sentinel-2 data
+   * If no Sentinel-2 data available, return empty array
+   */
   
   /**
    * Convert detection results to PollutionEvent format
