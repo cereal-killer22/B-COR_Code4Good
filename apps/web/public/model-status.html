@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ClimaGuard Model Status Checker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f8ff; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .status { padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌀 ClimaGuard Model Status Dashboard</h1>
+        
+        <div id="modelStatus" class="status info">
+            📋 Checking model status...
+        </div>
+        
+        <div id="trainingStatus" class="status info">
+            📊 Checking training history...
+        </div>
+        
+        <div id="storageInfo" class="status info">
+            💾 Checking storage details...
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn-primary" onclick="checkStatus()">🔄 Refresh Status</button>
+            <button class="btn-success" onclick="startTraining()">🚀 Start Training</button>
+            <button class="btn-warning" onclick="clearModel()">🗑️ Clear Stored Model</button>
+        </div>
+        
+        <div id="detailedInfo">
+            <h3>📋 Detailed Information</h3>
+            <pre id="storageDetails">Loading...</pre>
+        </div>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            document.getElementById('modelStatus').innerHTML = '📋 Checking model status...';
+            document.getElementById('trainingStatus').innerHTML = '📊 Checking training history...';
+            document.getElementById('storageInfo').innerHTML = '💾 Checking storage details...';
+            
+            // Check if trained model exists in localStorage
+            let modelExists = false;
+            let modelInfo = '';
+            
+            try {
+                // Check for TensorFlow.js model in localStorage
+                const modelKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.includes('tensorflowjs_models') && key.includes('cyclone-lstm-model')) {
+                        modelKeys.push(key);
+                        modelExists = true;
+                    }
+                }
+                
+                if (modelExists) {
+                    document.getElementById('modelStatus').className = 'status success';
+                    document.getElementById('modelStatus').innerHTML = '✅ <strong>Trained Model Found!</strong><br>📁 Stored in browser localStorage<br>🔑 Keys found: ' + modelKeys.length;
+                } else {
+                    document.getElementById('modelStatus').className = 'status warning';
+                    document.getElementById('modelStatus').innerHTML = '⚠️ <strong>No Trained Model Found</strong><br>📋 Model needs to be trained first<br>🔧 Use "Start Training" button to train with real data';
+                }
+                
+            } catch (error) {
+                document.getElementById('modelStatus').className = 'status error';
+                document.getElementById('modelStatus').innerHTML = '❌ <strong>Error Checking Model:</strong><br>' + error.message;
+            }
+            
+            // Check training status
+            try {
+                const trainingStatus = localStorage.getItem('climaguard_training_status');
+                
+                if (trainingStatus) {
+                    const status = JSON.parse(trainingStatus);
+                    const lastTrained = new Date(status.lastTrainingTime);
+                    const isRecent = Date.now() - status.lastTrainingTime < 24 * 60 * 60 * 1000;
+                    
+                    document.getElementById('trainingStatus').className = isRecent ? 'status success' : 'status warning';
+                    document.getElementById('trainingStatus').innerHTML = `
+                        📊 <strong>Training History Found</strong><br>
+                        📅 Last Training: ${lastTrained.toLocaleString()}<br>
+                        📈 Data Size: ${status.trainingDataSize} cyclone tracks<br>
+                        🎯 Accuracy: ${(status.accuracy * 100).toFixed(1)}%<br>
+                        🔄 Status: ${status.needsTraining ? 'Needs Retraining' : 'Up to Date'}
+                    `;
+                } else {
+                    document.getElementById('trainingStatus').className = 'status warning';
+                    document.getElementById('trainingStatus').innerHTML = '⚠️ <strong>No Training History</strong><br>📋 Model has never been trained<br>🚀 Run initial training to begin';
+                }
+            } catch (error) {
+                document.getElementById('trainingStatus').className = 'status error';
+                document.getElementById('trainingStatus').innerHTML = '❌ <strong>Error Checking Training Status:</strong><br>' + error.message;
+            }
+            
+            // Storage information
+            try {
+                const totalKeys = localStorage.length;
+                const modelKeys = [];
+                let totalSize = 0;
+                
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                            totalSize += key.length + value.length;
+                            if (key.includes('tensorflow') || key.includes('climaguard') || key.includes('cyclone')) {
+                                modelKeys.push({
+                                    key: key,
+                                    size: (key.length + value.length) / 1024
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                document.getElementById('storageInfo').className = 'status info';
+                document.getElementById('storageInfo').innerHTML = `
+                    💾 <strong>Storage Information</strong><br>
+                    📊 Total localStorage Keys: ${totalKeys}<br>
+                    🔑 ClimaGuard Model Keys: ${modelKeys.length}<br>
+                    📏 Estimated Size: ${(totalSize / 1024).toFixed(2)} KB
+                `;
+                
+                // Detailed storage info
+                let details = 'localStorage Contents (Model-related):\n\n';
+                modelKeys.forEach(item => {
+                    details += `🔑 ${item.key}\n   Size: ${item.size.toFixed(2)} KB\n\n`;
+                });
+                
+                if (modelKeys.length === 0) {
+                    details += 'No model-related data found in localStorage.\nRun training to generate model files.\n\n';
+                }
+                
+                details += `\nModel Storage Locations:\n`;
+                details += `1. 🌐 Browser localStorage: localstorage://cyclone-lstm-model\n`;
+                details += `2. 📁 File system (optional): public/models/cyclone-lstm/model.json\n`;
+                details += `3. 📊 Training status: climaguard_training_status key\n\n`;
+                
+                details += `Storage Mechanism:\n`;
+                details += `• TensorFlow.js automatically saves model weights, topology, and optimizer state\n`;
+                details += `• Each training session updates the stored model\n`;
+                details += `• Browser localStorage persists between sessions\n`;
+                details += `• Server restart doesn't affect stored models (client-side storage)`;
+                
+                document.getElementById('storageDetails').textContent = details;
+                
+            } catch (error) {
+                document.getElementById('storageInfo').className = 'status error';
+                document.getElementById('storageInfo').innerHTML = '❌ <strong>Error Checking Storage:</strong><br>' + error.message;
+            }
+        }
+        
+        async function startTraining() {
+            if (confirm('Start model training? This will fetch real cyclone data and train the LSTM model.')) {
+                try {
+                    const response = await fetch('/api/cyclone-training', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'start_training' })
+                    });
+                    
+                    if (response.ok) {
+                        alert('🚀 Training started! Check the console for progress updates.');
+                        setTimeout(() => checkStatus(), 2000);
+                    } else {
+                        alert('❌ Error starting training. Make sure the server is running.');
+                    }
+                } catch (error) {
+                    alert('❌ Error: ' + error.message);
+                }
+            }
+        }
+        
+        function clearModel() {
+            if (confirm('Clear all stored model data? This will remove the trained model and you will need to retrain.')) {
+                try {
+                    // Remove all model-related localStorage items
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.includes('tensorflow') || key.includes('climaguard') || key.includes('cyclone'))) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                    
+                    alert(`🗑️ Cleared ${keysToRemove.length} model-related storage items.`);
+                    checkStatus();
+                } catch (error) {
+                    alert('❌ Error clearing storage: ' + error.message);
+                }
+            }
+        }
+        
+        // Check status on page load
+        window.addEventListener('load', checkStatus);
+    </script>
+</body>
+</html>

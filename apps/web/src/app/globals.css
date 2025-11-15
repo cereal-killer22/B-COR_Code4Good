@@ -1,0 +1,573 @@
+@import "tailwindcss";
+
+/* ============================================
+   LIGHT MODE (Default) - Color-blind Safe Palette
+   ============================================ */
+:root,
+[data-theme="light"] {
+  /* Base Colors */
+  --background: #ffffff;
+  --foreground: #171717;
+  --background-secondary: #f9fafb;
+  --foreground-secondary: #6b7280;
+  
+  /* Card Colors */
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --card-hover: #f3f4f6;
+  
+  /* Map Overlay Colors */
+  --map-overlay-bg: rgba(255, 255, 255, 0.9);
+  --map-overlay-border: #d1d5db;
+  --map-control-bg: #ffffff;
+  
+  /* Risk Level Colors - Color-blind Safe (Blue/Purple/Orange) */
+  --risk-safe: #3b82f6;        /* Blue - Low risk */
+  --risk-safe-bg: #dbeafe;     /* Light blue background */
+  --risk-safe-text: #1e40af;   /* Dark blue text */
+  
+  --risk-moderate: #f59e0b;    /* Orange - Moderate risk */
+  --risk-moderate-bg: #fef3c7; /* Light orange background */
+  --risk-moderate-text: #d97706; /* Dark orange text */
+  
+  --risk-high: #a855f7;        /* Purple - High risk */
+  --risk-high-bg: #f3e8ff;     /* Light purple background */
+  --risk-high-text: #7c3aed;  /* Dark purple text */
+  
+  --risk-critical: #7c3aed;    /* Dark purple - Critical risk */
+  --risk-critical-bg: #ede9fe; /* Very light purple background */
+  --risk-critical-text: #5b21b6; /* Very dark purple text */
+  
+  /* Status Colors */
+  --status-success: #3b82f6;   /* Blue instead of green */
+  --status-success-bg: rgba(59, 130, 246, 0.2);
+  --status-success-border: rgba(59, 130, 246, 0.3);
+  --status-warning: #f59e0b;    /* Orange */
+  --status-warning-bg: rgba(245, 158, 11, 0.2);
+  --status-warning-border: rgba(245, 158, 11, 0.3);
+  --status-error: #7c3aed;      /* Purple instead of red */
+  --status-error-bg: rgba(168, 85, 247, 0.2);
+  --status-error-border: rgba(168, 85, 247, 0.3);
+  --status-info: #3b82f6;       /* Blue */
+  --status-info-bg: rgba(59, 130, 246, 0.2);
+  --status-info-border: rgba(59, 130, 246, 0.3);
+  
+  /* Focus and Interactive */
+  --focus-ring: #3b82f6;
+  --focus-ring-offset: #ffffff;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   DARK MODE - Color-blind Safe Palette
+   ============================================ */
+[data-theme="dark"] {
+  /* Base Colors */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --background-secondary: #1f2937;
+  --foreground-secondary: #9ca3af;
+  
+  /* Card Colors */
+  --card-background: #1f2937;
+  --card-border: #374151;
+  --card-hover: #374151;
+  
+  /* Map Overlay Colors */
+  --map-overlay-bg: rgba(31, 41, 55, 0.95);
+  --map-overlay-border: #4b5563;
+  --map-control-bg: #1f2937;
+  
+  /* Risk Level Colors - Color-blind Safe (Blue/Purple/Orange) */
+  --risk-safe: #60a5fa;        /* Light blue - Low risk */
+  --risk-safe-bg: #1e3a8a;     /* Dark blue background */
+  --risk-safe-text: #93c5fd;   /* Light blue text */
+  
+  --risk-moderate: #fbbf24;    /* Light orange - Moderate risk */
+  --risk-moderate-bg: #92400e; /* Dark orange background */
+  --risk-moderate-text: #fcd34d; /* Light orange text */
+  
+  --risk-high: #c084fc;        /* Light purple - High risk */
+  --risk-high-bg: #5b21b6;     /* Dark purple background */
+  --risk-high-text: #ddb6fe;   /* Light purple text */
+  
+  --risk-critical: #a78bfa;    /* Light purple - Critical risk */
+  --risk-critical-bg: #4c1d95; /* Very dark purple background */
+  --risk-critical-text: #c4b5fd; /* Very light purple text */
+  
+  /* Status Colors */
+  --status-success: #60a5fa;   /* Light blue instead of green */
+  --status-success-bg: rgba(96, 165, 250, 0.2);
+  --status-success-border: rgba(96, 165, 250, 0.3);
+  --status-warning: #fbbf24;    /* Light orange */
+  --status-warning-bg: rgba(251, 191, 36, 0.2);
+  --status-warning-border: rgba(251, 191, 36, 0.3);
+  --status-error: #a78bfa;      /* Light purple instead of red */
+  --status-error-bg: rgba(167, 139, 250, 0.2);
+  --status-error-border: rgba(167, 139, 250, 0.3);
+  --status-info: #60a5fa;       /* Light blue */
+  --status-info-bg: rgba(96, 165, 250, 0.2);
+  --status-info-border: rgba(96, 165, 250, 0.3);
+  
+  /* Focus and Interactive */
+  --focus-ring: #60a5fa;
+  --focus-ring-offset: #1f2937;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* Legacy .dark class support (for compatibility with Tailwind) */
+.dark {
+  /* Inherit all variables from data-theme="dark" */
+}
+
+/* Ensure dark mode classes work with data-theme */
+[data-theme="dark"] .dark\:bg-gray-800 {
+  background-color: var(--card-background);
+}
+
+[data-theme="dark"] .dark\:bg-gray-900 {
+  background-color: var(--background);
+}
+
+[data-theme="dark"] .dark\:text-gray-100 {
+  color: var(--foreground);
+}
+
+[data-theme="dark"] .dark\:text-gray-200 {
+  color: var(--foreground);
+}
+
+[data-theme="dark"] .dark\:text-gray-300 {
+  color: var(--foreground-secondary);
+}
+
+[data-theme="dark"] .dark\:text-gray-400 {
+  color: var(--foreground-secondary);
+}
+
+[data-theme="dark"] .dark\:border-gray-700 {
+  border-color: var(--card-border);
+}
+
+[data-theme="dark"] .dark\:bg-gray-700 {
+  background-color: var(--card-hover);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Font Size Control */
+:root {
+  --font-size-multiplier: 100%;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease, font-size 0.2s ease;
+  font-size: var(--font-size-multiplier);
+}
+
+/* Apply font size to main content areas */
+html {
+  font-size: var(--font-size-multiplier);
+}
+
+/* Exclude Leaflet/Mapbox map UI from font size changes */
+.leaflet-container,
+.leaflet-container *,
+[class*="leaflet"],
+[class*="mapbox"],
+.map-container,
+.map-container *,
+[id*="map"],
+[id*="Map"] {
+  font-size: initial !important;
+}
+
+/* Ensure map controls maintain their size */
+.leaflet-control,
+.leaflet-popup,
+.leaflet-popup-content,
+.mapboxgl-ctrl,
+.mapboxgl-popup,
+.mapboxgl-popup-content {
+  font-size: initial !important;
+}
+
+/* High Contrast Mode - Map Overlays */
+[data-high-contrast="true"] .leaflet-container,
+[data-high-contrast="true"] .leaflet-container *,
+[data-high-contrast="true"] [class*="leaflet"],
+[data-high-contrast="true"] [class*="mapbox"] {
+  border: 2px solid var(--foreground) !important;
+  stroke: var(--foreground) !important;
+  stroke-width: 2px !important;
+}
+
+[data-high-contrast="true"] .leaflet-control,
+[data-high-contrast="true"] .leaflet-popup,
+[data-high-contrast="true"] .mapboxgl-ctrl,
+[data-high-contrast="true"] .mapboxgl-popup {
+  border: 2px solid var(--foreground) !important;
+  background-color: var(--card-background) !important;
+  color: var(--foreground) !important;
+}
+
+/* High Contrast - All buttons and interactive elements */
+[data-high-contrast="true"] button,
+[data-high-contrast="true"] a,
+[data-high-contrast="true"] input,
+[data-high-contrast="true"] select,
+[data-high-contrast="true"] textarea {
+  border: 2px solid var(--foreground) !important;
+}
+
+/* High Contrast - Cards and containers */
+[data-high-contrast="true"] [class*="card"],
+[data-high-contrast="true"] [class*="Card"],
+[data-high-contrast="true"] .bg-card {
+  border: 2px solid var(--foreground) !important;
+  background-color: var(--card-background) !important;
+}
+
+/* High Contrast - Text must be maximum contrast */
+[data-high-contrast="true"] h1,
+[data-high-contrast="true"] h2,
+[data-high-contrast="true"] h3,
+[data-high-contrast="true"] h4,
+[data-high-contrast="true"] h5,
+[data-high-contrast="true"] h6,
+[data-high-contrast="true"] p,
+[data-high-contrast="true"] span,
+[data-high-contrast="true"] label {
+  color: var(--foreground) !important;
+}
+
+/* High Contrast - Focus outlines must be very visible */
+[data-high-contrast="true"] button:focus-visible,
+[data-high-contrast="true"] a:focus-visible,
+[data-high-contrast="true"] input:focus-visible,
+[data-high-contrast="true"] select:focus-visible,
+[data-high-contrast="true"] textarea:focus-visible {
+  outline: 4px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 6px rgba(0, 0, 255, 0.5) !important;
+}
+
+/* High Contrast - Risk indicators must have icons + text */
+[data-high-contrast="true"] .bg-risk-safe::before,
+[data-high-contrast="true"] .bg-risk-moderate::before,
+[data-high-contrast="true"] .bg-risk-high::before,
+[data-high-contrast="true"] .bg-risk-critical::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
+[data-high-contrast="true"] .bg-risk-safe::before {
+  content: '✓';
+}
+
+[data-high-contrast="true"] .bg-risk-moderate::before {
+  content: '⚠';
+}
+
+[data-high-contrast="true"] .bg-risk-high::before {
+  content: '⚡';
+}
+
+[data-high-contrast="true"] .bg-risk-critical::before {
+  content: '🚨';
+}
+
+/* High Contrast - Charts must have clear lines */
+[data-high-contrast="true"] svg[class*="chart"],
+[data-high-contrast="true"] canvas[class*="chart"],
+[data-high-contrast="true"] [class*="Chart"] {
+  stroke: var(--foreground) !important;
+  stroke-width: 3px !important;
+  fill: var(--foreground) !important;
+}
+
+/* High Contrast - Alerts and banners */
+[data-high-contrast="true"] [class*="alert"],
+[data-high-contrast="true"] [class*="Alert"],
+[data-high-contrast="true"] [class*="banner"],
+[data-high-contrast="true"] [class*="Banner"] {
+  border: 3px solid var(--foreground) !important;
+  background-color: var(--card-background) !important;
+  color: var(--foreground) !important;
+}
+
+/* ============================================
+   Utility Classes Using CSS Variables
+   ============================================ */
+
+/* Background utilities */
+.bg-theme {
+  background-color: var(--background);
+}
+
+.bg-theme-secondary {
+  background-color: var(--background-secondary);
+}
+
+.bg-card {
+  background-color: var(--card-background);
+}
+
+.bg-card-hover:hover {
+  background-color: var(--card-hover);
+}
+
+/* Text utilities */
+.text-theme {
+  color: var(--foreground);
+}
+
+.text-theme-secondary {
+  color: var(--foreground-secondary);
+}
+
+/* Border utilities */
+.border-theme {
+  border-color: var(--card-border);
+}
+
+/* Risk level utilities */
+.bg-risk-safe {
+  background-color: var(--risk-safe-bg);
+  color: var(--risk-safe-text);
+}
+
+.bg-risk-moderate {
+  background-color: var(--risk-moderate-bg);
+  color: var(--risk-moderate-text);
+}
+
+.bg-risk-high {
+  background-color: var(--risk-high-bg);
+  color: var(--risk-high-text);
+}
+
+.bg-risk-critical {
+  background-color: var(--risk-critical-bg);
+  color: var(--risk-critical-text);
+}
+
+.text-risk-safe {
+  color: var(--risk-safe-text);
+}
+
+.text-risk-moderate {
+  color: var(--risk-moderate-text);
+}
+
+.text-risk-high {
+  color: var(--risk-high-text);
+}
+
+.text-risk-critical {
+  color: var(--risk-critical-text);
+}
+
+/* Status utilities */
+.bg-status-success {
+  background-color: var(--status-success);
+}
+
+.bg-status-warning {
+  background-color: var(--status-warning);
+}
+
+.bg-status-error {
+  background-color: var(--status-error);
+}
+
+.bg-status-info {
+  background-color: var(--status-info);
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-radius: 0.375rem;
+}
+
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] a:focus-visible,
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] select:focus-visible,
+[data-theme="dark"] textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+}
+
+/* Settings Panel Positioning */
+.settings-panel {
+  /* Desktop: near icon (top-right) */
+  top: 4rem;
+  right: 1rem;
+  left: auto;
+  transform: none;
+}
+
+/* Mobile: centered */
+@media (max-width: 640px) {
+  .settings-panel {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* High Contrast Mode - User Toggle */
+[data-high-contrast="true"] {
+  /* Base Colors - Maximum Contrast */
+  --background: #ffffff;
+  --foreground: #000000;
+  --background-secondary: #f0f0f0;
+  --foreground-secondary: #000000;
+  
+  /* Card Colors */
+  --card-background: #ffffff;
+  --card-border: #000000;
+  --card-hover: #e0e0e0;
+  
+  /* Map Overlay Colors */
+  --map-overlay-bg: rgba(255, 255, 255, 0.98);
+  --map-overlay-border: #000000;
+  --map-control-bg: #ffffff;
+  
+  /* Risk Level Colors - High Contrast with Icons */
+  --risk-safe: #0000ff;        /* Blue - Low risk */
+  --risk-safe-bg: #e6e6ff;     /* Light blue background */
+  --risk-safe-text: #000080;   /* Dark blue text */
+  
+  --risk-moderate: #ff8800;    /* Orange - Moderate risk */
+  --risk-moderate-bg: #ffe6cc; /* Light orange background */
+  --risk-moderate-text: #cc6600; /* Dark orange text */
+  
+  --risk-high: #800080;        /* Purple - High risk */
+  --risk-high-bg: #e6cce6;     /* Light purple background */
+  --risk-high-text: #4d004d;   /* Dark purple text */
+  
+  --risk-critical: #000000;    /* Black - Critical risk */
+  --risk-critical-bg: #cccccc; /* Light gray background */
+  --risk-critical-text: #000000; /* Black text */
+  
+  /* Status Colors */
+  --status-success: #006600;   /* Dark green */
+  --status-warning: #ff8800;    /* Orange */
+  --status-error: #cc0000;     /* Dark red */
+  --status-info: #0000ff;      /* Blue */
+  
+  /* Focus and Interactive */
+  --focus-ring: #0000ff;
+  --focus-ring-offset: #ffffff;
+  
+  /* Shadows - Stronger for visibility */
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px 0 rgba(0, 0, 0, 0.5);
+}
+
+[data-high-contrast="true"][data-theme="dark"] {
+  /* Dark mode with high contrast */
+  --background: #000000;
+  --foreground: #ffffff;
+  --background-secondary: #1a1a1a;
+  --foreground-secondary: #ffffff;
+  
+  /* Card Colors */
+  --card-background: #000000;
+  --card-border: #ffffff;
+  --card-hover: #333333;
+  
+  /* Map Overlay Colors */
+  --map-overlay-bg: rgba(0, 0, 0, 0.98);
+  --map-overlay-border: #ffffff;
+  --map-control-bg: #000000;
+  
+  /* Risk Level Colors - High Contrast Dark Mode */
+  --risk-safe: #4da6ff;        /* Light blue */
+  --risk-safe-bg: #001a33;     /* Dark blue background */
+  --risk-safe-text: #b3d9ff;   /* Light blue text */
+  
+  --risk-moderate: #ffaa00;    /* Light orange */
+  --risk-moderate-bg: #331400; /* Dark orange background */
+  --risk-moderate-text: #ffcc66; /* Light orange text */
+  
+  --risk-high: #cc66ff;        /* Light purple */
+  --risk-high-bg: #330033;     /* Dark purple background */
+  --risk-high-text: #ff99ff;   /* Light purple text */
+  
+  --risk-critical: #ffffff;    /* White */
+  --risk-critical-bg: #4d4d4d; /* Medium gray background */
+  --risk-critical-text: #ffffff; /* White text */
+  
+  /* Status Colors */
+  --status-success: #00ff00;   /* Bright green */
+  --status-warning: #ffaa00;   /* Orange */
+  --status-error: #ff3333;     /* Bright red */
+  --status-info: #4da6ff;      /* Light blue */
+  
+  /* Focus and Interactive */
+  --focus-ring: #4da6ff;
+  --focus-ring-offset: #000000;
+}
+
+/* High contrast mode support - System Preference */
+@media (prefers-contrast: high) {
+  :root,
+  [data-theme="light"] {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card-border: #000000;
+  }
+  
+  [data-theme="dark"] {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card-border: #ffffff;
+  }
+}

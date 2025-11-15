@@ -1,0 +1,239 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, StatusBadge, MetricCard, Button } from '@/components/ui';
+
+export default function Home() {
+  const [currentTemp] = useState(24);
+  const [currentHumidity] = useState(65);
+  const [temperatureUnit, setTemperatureUnit] = useState<'C' | 'F'>('C');
+  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const celsiusToFahrenheit = (celsius: number) => (celsius * 9/5) + 32;
+
+  const handleGetStarted = () => {
+    alert('Welcome to ClimaGuard! 🌡️');
+  };
+
+  const handleViewDashboard = () => {
+    window.location.href = '/dashboard';
+  };
+
+  const checkWeather = () => {
+    // Simulate weather check
+    alert('Weather data refreshed! 🌤️');
+  };
+
+  return (
+    <div className="min-h-screen bg-theme" style={{ background: 'linear-gradient(to bottom right, var(--background-secondary), var(--background), var(--background-secondary))' }}>
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="text-center py-16">
+          <div className="mb-8">
+            <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6">
+              🌡️ ClimaGuard
+            </h1>
+            <h2 className="text-3xl font-semibold text-theme mb-4">
+              AI-Powered Climate Risk Platform
+            </h2>
+            <p className="text-xl text-theme-secondary mb-2">
+              Protecting Mauritius from climate disasters with advanced prediction technology
+            </p>
+            <StatusBadge status="success" size="lg">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              System Online • {formatDate(new Date())}
+            </StatusBadge>
+          </div>
+          
+          <div className="flex justify-center gap-4 mb-12">
+            <Button size="lg" onClick={handleViewDashboard} icon="📊">
+              View Dashboard
+            </Button>
+            <Button variant="outline" size="lg" onClick={handleGetStarted} icon="🚀">
+              Get Started
+            </Button>
+          </div>
+        </div>
+
+        {/* Current Conditions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <MetricCard 
+            icon="🌡️" 
+            title="Temperature" 
+            value={`${currentTemp}°C`} 
+            subtitle={`${celsiusToFahrenheit(currentTemp).toFixed(1)}°F`}
+            trend={{ direction: 'stable', value: 'Normal' }}
+          />
+          <MetricCard 
+            icon="💧" 
+            title="Humidity" 
+            value={`${currentHumidity}%`} 
+            subtitle="Moderate levels"
+            trend={{ direction: 'down', value: '-2%' }}
+          />
+          <MetricCard 
+            icon="🌀" 
+            title="Cyclone Risk" 
+            value="Medium" 
+            subtitle="Category 3 active"
+            trend={{ direction: 'up', value: 'Watching' }}
+          />
+          <MetricCard 
+            icon="🌊" 
+            title="Flood Risk" 
+            value="Low" 
+            subtitle="3 zones monitored"
+            trend={{ direction: 'stable', value: 'Stable' }}
+          />
+        </div>
+
+        {/* Feature Cards */}
+                {/* Navigation */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="group cursor-pointer" onClick={() => window.location.href = '/auth'}>
+            <Card className="hover:shadow-xl transition-all duration-300">
+              <div className="text-center">
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🔐</div>
+                <h3 className="text-lg font-semibold text-theme mb-2">Authentication</h3>
+                <p className="text-sm text-theme-secondary">Secure access to your climate data</p>
+              </div>
+            </Card>
+          </div>
+          <div className="group cursor-pointer" onClick={() => window.location.href = '/dashboard'}>
+            <Card className="hover:shadow-xl transition-all duration-300 border-2 border-blue-200">
+              <div className="text-center">
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌀</div>
+                <h3 className="text-lg font-semibold text-blue-700 mb-2">Live Dashboard</h3>
+                <p className="text-sm text-blue-600">Real-time climate monitoring</p>
+              </div>
+            </Card>
+          </div>
+          <div className="group cursor-pointer" onClick={() => window.location.href = '/demo'}>
+            <Card className="hover:shadow-xl transition-all duration-300">
+              <div className="text-center">
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎮</div>
+                <h3 className="text-lg font-semibold text-theme mb-2">Interactive Demo</h3>
+                <p className="text-sm text-theme-secondary">Explore AI predictions</p>
+              </div>
+            </Card>
+          </div>
+          <div className="group cursor-pointer" onClick={checkWeather}>
+            <Card className="hover:shadow-xl transition-all duration-300">
+              <div className="text-center">
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🔄</div>
+                <h3 className="text-lg font-semibold text-theme mb-2">Refresh Data</h3>
+                <p className="text-sm text-theme-secondary">Update weather conditions</p>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <h3 className="text-xl font-bold text-orange-600 mb-3">
+              🌀 Cyclone Formation Prediction
+            </h3>
+            <p className="text-theme mb-4">
+              AI-powered predictions showing where and when new cyclones will form with expected dates.
+            </p>
+            <div className="bg-theme-secondary p-3 rounded-lg">
+              <p className="text-sm text-theme">
+                Real-time • Formation Analysis • Early Warning
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-xl font-bold text-purple-600 mb-3">
+              💧 Humidity Control
+            </h3>
+            <p className="text-theme mb-4">
+              Track humidity levels and receive notifications when levels reach critical thresholds.
+            </p>
+            <div className="bg-theme-secondary p-3 rounded-lg">
+              <p className="text-sm text-theme">
+                Current: {currentHumidity}% • Status: Optimal
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-xl font-bold text-green-600 mb-3">
+              📊 Analytics Dashboard
+            </h3>
+            <p className="text-theme mb-4">
+              Historical data analysis, trend visualization, and predictive insights.
+            </p>
+            <div className="bg-theme-secondary p-3 rounded-lg">
+              <p className="text-sm text-theme">
+                Cross-platform • Web • Mobile
+              </p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <Card className="mb-8">
+          <h2 className="text-2xl font-bold text-center mb-6">
+            Get Started with Climate Monitoring
+          </h2>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={handleGetStarted}
+              variant="primary"
+            >
+              Start Monitoring
+            </Button>
+            <Button
+              onClick={handleViewDashboard}
+              variant="secondary"
+            >
+              View Dashboard
+            </Button>
+          </div>
+          
+          <p className="text-center text-theme-secondary mt-4 text-sm">
+            Cross-platform monitoring • Web • Mobile • Real-time alerts
+          </p>
+        </Card>
+
+        {/* Alert Thresholds */}
+        <Card>
+          <h2 className="text-2xl font-bold mb-6">Default Alert Thresholds</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <div className="text-2xl mb-2">🔥</div>
+              <div className="font-bold text-red-600">Critical Hot</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">40°C</div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <div className="text-2xl mb-2">☀️</div>
+              <div className="font-bold text-orange-600">Hot</div>
+              <div className="text-sm text-gray-600">30°C</div>
+            </div>
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="text-2xl mb-2">❄️</div>
+              <div className="font-bold text-blue-600">Cold</div>
+              <div className="text-sm text-gray-600">5°C</div>
+            </div>
+            <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <div className="text-2xl mb-2">🧊</div>
+              <div className="font-bold text-blue-800">Critical Cold</div>
+              <div className="text-sm text-gray-600">-10°C</div>
+            </div>
+          </div>
+        </Card>
+      </main>
+    </div>
+  );
+}
