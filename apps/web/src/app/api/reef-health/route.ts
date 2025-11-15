@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CoralReefWatch } from '@/lib/integrations/coralReefWatch';
 import { CoralBleachingPredictor } from '@/lib/models/coralBleachingPredictor';
-import { CopernicusMarineService } from '@/lib/integrations/copernicusMarine';
+import { OpenMeteoMarineService } from '@/lib/integrations/openMeteoMarine';
 import type { CoralReefData } from '@climaguard/shared/types/ocean';
 
 export async function GET(request: NextRequest) {
@@ -45,17 +45,20 @@ async function fetchReefHealthData(
   reef: CoralReefData;
   prediction?: any;
 }> {
-  // Initialize services
+  // Initialize services (FREE APIs only)
   const reefWatch = new CoralReefWatch();
-  const marineService = new CopernicusMarineService();
+  const openMeteo = new OpenMeteoMarineService();
   
-  // Fetch reef health from NOAA
+  // Fetch reef health from NOAA/Open-Meteo
   const reefWatchData = await reefWatch.getReefHealth(lat, lng);
   
-  // Fetch water quality for pH
-  const marineData = await marineService.getMarineData(lat, lng);
+  // Fetch marine data for additional context (pH would need sensor data - using default)
+  const marineData = await openMeteo.getMarineData(lat, lng);
   
-  // Build reef data
+  // Get SST trend for historical data
+  const sstTrend = await reefWatch.getSSTTrend(lat, lng);
+  
+  // Build reef data using real values only
   const reef: CoralReefData = {
     id: `reef-${lat}-${lng}`,
     location: [lat, lng],
@@ -64,27 +67,28 @@ async function fetchReefHealthData(
     temperature: reefWatchData.temperature,
     anomaly: reefWatchData.anomaly,
     healthIndex: reefWatchData.healthIndex,
-    pH: marineData.pH || 8.1,
-    coverage: 30 + Math.random() * 30, // Would come from actual surveys
-    biodiversity: 50 + Math.random() * 30,
+    pH: 8.1, // Default (pH requires sensor data - not available in free APIs)
+    coverage: 0, // Would come from reef surveys (not available in free APIs)
+    biodiversity: 0, // Would come from biodiversity surveys (not available in free APIs)
     lastAssessment: new Date()
   };
   
   let prediction = undefined;
   
   if (includePredictions) {
-    // Generate bleaching prediction
+    // Generate bleaching prediction using real NOAA data
     const predictor = new CoralBleachingPredictor();
     
-    // Generate historical temperature data (would come from database)
-    const historicalData = Array.from({ length: 30 }, () => 
-      reefWatchData.temperature + (Math.random() - 0.5) * 2
-    );
+    // Use real SST trend data for historical context
+    const historicalSST = sstTrend.trend30d.length > 0 ? sstTrend.trend30d : [reefWatchData.temperature];
     
     prediction = await predictor.predictBleachingRisk(
       reefWatchData.temperature,
+      reefWatchData.anomaly || 0,
+      reefWatchData.degreeHeatingWeeks || 0,
+      reefWatchData.hotspot || 0,
       reef.pH,
-      historicalData
+      historicalSST
     );
     
     predictor.dispose();

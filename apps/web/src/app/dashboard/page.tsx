@@ -67,11 +67,19 @@ const useLiveAlertData = () => {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const response = await fetch('/api/alerts/active');
-        if (response.ok) {
-          const data = await response.json();
-          // Map API data to dashboard format
-          const mappedAlerts = (data.alerts || []).map((alert: any) => ({
+        // Fetch alerts from multiple sources
+        const [alertsResponse, floodResponse, stormSurgeResponse] = await Promise.all([
+          fetch('/api/alerts/active').catch(() => null),
+          fetch('/api/flood?lat=-20.2&lng=57.5').catch(() => null),
+          fetch('/api/storm-surge?lat=-20.2&lng=57.5').catch(() => null)
+        ]);
+
+        const alerts: AlertData[] = [];
+
+        // Add alerts from alerts API
+        if (alertsResponse?.ok) {
+          const alertsData = await alertsResponse.json();
+          const mappedAlerts = (alertsData.alerts || []).map((alert: any) => ({
             id: alert.id,
             zone: alert.area,
             level: alert.severity,
@@ -79,15 +87,47 @@ const useLiveAlertData = () => {
             time: new Date(alert.timeIssued).toLocaleTimeString(),
             type: alert.type
           }));
-          setAlertData(mappedAlerts);
+          alerts.push(...mappedAlerts);
         }
+
+        // Add flood alerts
+        if (floodResponse?.ok) {
+          const floodData = await floodResponse.json();
+          if (floodData.floodRisk?.alerts) {
+            floodData.floodRisk.alerts.forEach((alert: any, idx: number) => {
+              alerts.push({
+                id: `flood-${idx}`,
+                zone: alert.area,
+                level: alert.level,
+                message: alert.message,
+                time: new Date().toLocaleTimeString(),
+                type: 'flood'
+              });
+            });
+          }
+        }
+
+        // Add storm surge alerts
+        if (stormSurgeResponse?.ok) {
+          const stormSurgeData = await stormSurgeResponse.json();
+          if (stormSurgeData.stormSurge?.alerts) {
+            stormSurgeData.stormSurge.alerts.forEach((alert: any, idx: number) => {
+              alerts.push({
+                id: `storm-${idx}`,
+                zone: alert.area,
+                level: alert.level,
+                message: alert.message,
+                time: new Date().toLocaleTimeString(),
+                type: 'wind'
+              });
+            });
+          }
+        }
+
+        setAlertData(alerts.length > 0 ? alerts : []);
       } catch (error) {
         console.error('Failed to fetch alert data:', error);
-        // Fallback to sample alerts for now
-        setAlertData([
-          { id: 1, zone: "Port Louis", level: "high", message: "System monitoring active", time: "Live", type: "system" },
-          { id: 2, zone: "Formation Zones", level: "medium", message: "AI predictions active", time: "Live", type: "cyclone" },
-        ]);
+        setAlertData([]); // No mock data - return empty array
       }
     };
 
@@ -99,12 +139,30 @@ const useLiveAlertData = () => {
   return alertData;
 };
 
-const dataSourcesStatus = [
-  { name: "IBTrACS", status: "Active", lastUpdate: "1 min ago", type: "Cyclone Data" },
-  { name: "NASA GPM", status: "Active", lastUpdate: "30 sec ago", type: "Rainfall" },
-  { name: "Copernicus Sentinel", status: "Active", lastUpdate: "2 min ago", type: "Satellite Imagery" },
-  { name: "Meteo Mauritius", status: "Active", lastUpdate: "45 sec ago", type: "Local Weather" },
-];
+// Data sources will be dynamically updated based on API status
+const getDataSourcesStatus = (weatherData: any, floodData: any, stormSurgeData: any, cycloneData: any) => {
+  const sources = [];
+  
+  if (weatherData) {
+    sources.push({ name: "Open-Meteo", status: "Active", lastUpdate: "Live", type: "Weather Data" });
+  }
+  
+  if (floodData) {
+    sources.push({ name: "Open-Meteo", status: "Active", lastUpdate: "Live", type: "Flood Risk" });
+  }
+  
+  if (stormSurgeData) {
+    sources.push({ name: "Open-Meteo Marine", status: "Active", lastUpdate: "Live", type: "Storm Surge" });
+  }
+  
+  if (cycloneData && cycloneData.category > 0) {
+    sources.push({ name: "NOAA", status: "Active", lastUpdate: "Live", type: "Cyclone Data" });
+  } else {
+    sources.push({ name: "NOAA", status: "Monitoring", lastUpdate: "Live", type: "Cyclone Data" });
+  }
+  
+  return sources;
+};
 
 type TabItem = {
   id: string;
@@ -117,10 +175,51 @@ type TabItem = {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAlerts, setShowAlerts] = useState(true);
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [floodData, setFloodData] = useState<any>(null);
+  const [stormSurgeData, setStormSurgeData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
   // Use live data hooks
   const cycloneData = useLiveCycloneData();
   const alertData = useLiveAlertData();
+
+  // Fetch weather, flood, and storm surge data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [weatherRes, floodRes, stormSurgeRes] = await Promise.all([
+          fetch('/api/weather/current?lat=-20.2&lng=57.5').catch(() => null),
+          fetch('/api/flood?lat=-20.2&lng=57.5').catch(() => null),
+          fetch('/api/storm-surge?lat=-20.2&lng=57.5').catch(() => null)
+        ]);
+
+        if (weatherRes?.ok) {
+          const data = await weatherRes.json();
+          setWeatherData(data.weather);
+        }
+
+        if (floodRes?.ok) {
+          const data = await floodRes.json();
+          setFloodData(data.floodRisk);
+        }
+
+        if (stormSurgeRes?.ok) {
+          const data = await stormSurgeRes.json();
+          setStormSurgeData(data.stormSurge);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 300000); // Update every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   const getAlertColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -220,30 +319,30 @@ export default function Dashboard() {
               <MetricCard 
                 icon="🌀" 
                 title="Active Cyclones" 
-                value="1" 
-                subtitle="Category 3 - Freddy"
-                trend={{ direction: 'up', value: '+1' }}
+                value={cycloneData.category > 0 ? "1" : "0"} 
+                subtitle={cycloneData.category > 0 ? `Category ${cycloneData.category} - ${cycloneData.name}` : "No active cyclones"}
+                trend={cycloneData.category > 0 ? { direction: 'up', value: 'Active' } : { direction: 'stable', value: 'Clear' }}
               />
               <MetricCard 
                 icon="🌊" 
                 title="Flood Alerts" 
-                value="3" 
-                subtitle="2 High, 1 Moderate"
-                trend={{ direction: 'down', value: '-2' }}
+                value={floodData ? floodData.alerts?.length || 0 : 0} 
+                subtitle={floodData ? `${floodData.riskLevel.charAt(0).toUpperCase() + floodData.riskLevel.slice(1)} Risk` : "Loading..."}
+                trend={floodData && floodData.riskLevel === 'high' ? { direction: 'up', value: 'High' } : { direction: 'stable', value: 'Normal' }}
               />
               <MetricCard 
-                icon="🎯" 
-                title="AI Accuracy" 
-                value="94.2%" 
-                subtitle="Last 30 days"
-                trend={{ direction: 'up', value: '+2.1%' }}
+                icon="🌡️" 
+                title="Temperature" 
+                value={weatherData ? `${Math.round(weatherData.temperature)}°C` : "--"} 
+                subtitle={weatherData ? `Humidity: ${Math.round(weatherData.humidity)}%` : "Loading..."}
+                trend={{ direction: 'stable', value: 'Live' }}
               />
               <MetricCard 
-                icon="⚡" 
-                title="System Status" 
-                value="100%" 
-                subtitle="All services online"
-                trend={{ direction: 'stable', value: 'Stable' }}
+                icon="💨" 
+                title="Wind Speed" 
+                value={weatherData ? `${Math.round(weatherData.windSpeed)} km/h` : "--"} 
+                subtitle={stormSurgeData ? `Waves: ${stormSurgeData.waveHeightMax.toFixed(1)}m` : "Loading..."}
+                trend={{ direction: 'stable', value: 'Live' }}
               />
             </div>
 
@@ -421,7 +520,7 @@ export default function Dashboard() {
                   className="mb-4"
                 />
                 <div className="space-y-4">
-                  {dataSourcesStatus.map((source, index) => (
+                  {getDataSourcesStatus(weatherData, floodData, stormSurgeData, cycloneData).map((source, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <div className="font-semibold text-gray-900">{source.name}</div>

@@ -1,21 +1,23 @@
 -- Ocean Health Database Schema
 -- SDG 14 (Life Below Water) tables for ClimaGuard
 
--- Ocean Health Metrics Table
-CREATE TABLE IF NOT EXISTS ocean_health_metrics (
+-- Ocean Health Metrics Table (Daily Aggregates)
+CREATE TABLE IF NOT EXISTS ocean_metrics_daily (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   location POINT NOT NULL,
+  date DATE NOT NULL,
   timestamp TIMESTAMP DEFAULT NOW(),
   
-  -- Water Quality
+  -- Water Quality (from Open-Meteo, NASA GIBS)
   ph DECIMAL(4,2),
-  temperature DECIMAL(5,2),
+  temperature DECIMAL(5,2), -- SST from NOAA/Open-Meteo
   salinity DECIMAL(5,2),
   dissolved_oxygen DECIMAL(5,2),
-  turbidity DECIMAL(5,2),
+  turbidity DECIMAL(5,2), -- From NASA GIBS
+  chlorophyll DECIMAL(5,2), -- From NASA GIBS
   water_quality_score INTEGER,
   
-  -- Pollution
+  -- Pollution (from Sentinel-2)
   plastic_density DECIMAL(10,2),
   oil_spill_risk INTEGER,
   chemical_pollution INTEGER,
@@ -26,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ocean_health_metrics (
   endangered_species INTEGER,
   biodiversity_index INTEGER,
   
-  -- Reef Health
+  -- Reef Health (from NOAA)
   bleaching_risk VARCHAR(20),
   reef_health_index INTEGER,
   coral_coverage DECIMAL(5,2),
@@ -34,13 +36,54 @@ CREATE TABLE IF NOT EXISTS ocean_health_metrics (
   -- Overall
   overall_health_score INTEGER,
   
+  -- Source tracking
+  data_sources JSONB, -- Track which APIs provided data
+  
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  
+  UNIQUE(location, date)
+);
+
+-- Reef Bleaching Risk Table (from NOAA Coral Reef Watch)
+CREATE TABLE IF NOT EXISTS reef_bleaching_risk (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  location POINT NOT NULL,
+  timestamp TIMESTAMP DEFAULT NOW(),
+  
+  -- NOAA Data
+  sst DECIMAL(5,2) NOT NULL, -- Sea Surface Temperature
+  sst_anomaly DECIMAL(5,2) NOT NULL, -- Temperature anomaly
+  hotspot DECIMAL(5,2) NOT NULL, -- HotSpot value
+  degree_heating_weeks DECIMAL(5,2) NOT NULL, -- DHW
+  alert_level INTEGER NOT NULL, -- 0-5 NOAA alert level
+  
+  -- Prediction
+  risk_level VARCHAR(20) NOT NULL CHECK (risk_level IN ('low', 'moderate', 'high', 'severe')),
+  probability DECIMAL(3,2) NOT NULL, -- 0-1
+  days_to_bleaching INTEGER,
+  confidence DECIMAL(3,2), -- 0-1
+  
+  -- Historical trends
+  trend_7d DECIMAL(5,2)[], -- Last 7 days SST
+  trend_30d DECIMAL(5,2)[], -- Last 30 days SST
+  baseline DECIMAL(5,2), -- Historical baseline SST
+  
+  -- Recommendations
+  recommended_actions TEXT[],
+  
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create index on location for spatial queries
-CREATE INDEX IF NOT EXISTS idx_ocean_health_location ON ocean_health_metrics USING GIST(location);
-CREATE INDEX IF NOT EXISTS idx_ocean_health_timestamp ON ocean_health_metrics(timestamp DESC);
+-- Create indexes on location for spatial queries
+CREATE INDEX IF NOT EXISTS idx_ocean_metrics_location ON ocean_metrics_daily USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_ocean_metrics_date ON ocean_metrics_daily(date DESC);
+CREATE INDEX IF NOT EXISTS idx_ocean_metrics_timestamp ON ocean_metrics_daily(timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_reef_bleaching_location ON reef_bleaching_risk USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_reef_bleaching_timestamp ON reef_bleaching_risk(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_reef_bleaching_risk_level ON reef_bleaching_risk(risk_level);
 
 -- Pollution Events Table
 CREATE TABLE IF NOT EXISTS pollution_events (
@@ -153,7 +196,10 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to auto-update updated_at
-CREATE TRIGGER update_ocean_health_updated_at BEFORE UPDATE ON ocean_health_metrics
+CREATE TRIGGER update_ocean_metrics_updated_at BEFORE UPDATE ON ocean_metrics_daily
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_reef_bleaching_updated_at BEFORE UPDATE ON reef_bleaching_risk
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_pollution_events_updated_at BEFORE UPDATE ON pollution_events

@@ -1,6 +1,13 @@
 /**
- * Sentinel-2 Satellite Imagery Integration
- * Fetches and processes Sentinel-2 satellite data for pollution detection
+ * Sentinel-2 Satellite Imagery Integration (FREE - NO API KEY REQUIRED)
+ * Uses Microsoft Planetary Computer STAC API
+ * 
+ * Endpoint: https://planetarycomputer.microsoft.com/api/stac/v1/search
+ * 
+ * Provides:
+ * - Sentinel-2 L2A (atmospherically corrected) imagery
+ * - RGB + NIR bands for pollution detection
+ * - Real-time tile URLs
  */
 
 export interface Sentinel2Image {
@@ -9,12 +16,14 @@ export interface Sentinel2Image {
   timestamp: Date;
   cloudCoverage: number; // 0-100
   url?: string;
+  tileUrl?: string; // Direct tile URL for visualization
   bands?: {
     B02?: string; // Blue
     B03?: string; // Green
     B04?: string; // Red
     B08?: string; // NIR
   };
+  bbox: [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
 }
 
 export interface PollutionDetectionRequest {
@@ -24,24 +33,44 @@ export interface PollutionDetectionRequest {
   endDate?: Date;
 }
 
+export interface STACItem {
+  id: string;
+  type: string;
+  geometry: {
+    type: string;
+    coordinates: number[][][];
+  };
+  bbox: number[];
+  properties: {
+    datetime: string;
+    'eo:cloud_cover': number;
+    'sentinel:utm_zone': number;
+    'sentinel:latitude_band': string;
+    'sentinel:grid_square': string;
+  };
+  assets: {
+    [key: string]: {
+      href: string;
+      type: string;
+      title?: string;
+    };
+  };
+  links: Array<{
+    rel: string;
+    href: string;
+  }>;
+}
+
 export class Sentinel2Service {
-  private username: string;
-  private password: string;
-  private baseUrl = 'https://scihub.copernicus.eu/dhus';
-  private useMockData: boolean;
+  private stacBaseUrl = 'https://planetarycomputer.microsoft.com/api/stac/v1';
+  private collectionId = 'sentinel-2-l2a';
   
   constructor() {
-    this.username = process.env.COPERNICUS_OPEN_ACCESS_HUB_USERNAME || '';
-    this.password = process.env.COPERNICUS_OPEN_ACCESS_HUB_PASSWORD || '';
-    this.useMockData = !this.username || !this.password;
-    
-    if (this.useMockData) {
-      console.warn('⚠️ Copernicus Open Access Hub credentials not configured - using mock data');
-    }
+    // No API key needed - Microsoft Planetary Computer is free
   }
   
   /**
-   * Search for Sentinel-2 images in a region
+   * Search for Sentinel-2 images using Microsoft Planetary Computer STAC API
    */
   async searchImages(
     location: [number, number],
@@ -49,73 +78,110 @@ export class Sentinel2Service {
     startDate?: Date,
     endDate?: Date
   ): Promise<Sentinel2Image[]> {
-    if (this.useMockData) {
-      return this.getMockImages(location);
-    }
-    
     try {
-      const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Default: last 7 days
+      const [lat, lng] = location;
+      const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const end = endDate || new Date();
       
-      const query = this.buildSearchQuery(location, radius, start, end);
+      // Build bounding box from location and radius
+      const bbox: [number, number, number, number] = [
+        lng - radius, // minLng
+        lat - radius, // minLat
+        lng + radius, // maxLng
+        lat + radius  // maxLat
+      ];
       
-      const response = await fetch(
-        `${this.baseUrl}/search?q=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'Authorization': `Basic ${btoa(`${this.username}:${this.password}`)}`,
-            'Accept': 'application/json',
-            'User-Agent': 'ClimaGuard/1.0'
-          },
-          next: { revalidate: 3600 } // Cache for 1 hour
+      // STAC search request
+      const searchBody = {
+        collections: [this.collectionId],
+        bbox,
+        datetime: `${start.toISOString()}/${end.toISOString()}`,
+        limit: 10,
+        query: {
+          'eo:cloud_cover': { lt: 30 } // Prefer low cloud coverage
         }
-      );
+      };
+      
+      const response = await fetch(`${this.stacBaseUrl}/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'ClimaGuard/1.0'
+        },
+        body: JSON.stringify(searchBody),
+        next: { revalidate: 3600 }
+      });
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`STAC API error: ${response.status}`);
       }
       
       const data = await response.json();
       
-      return (data.feed?.entry || []).map((entry: any) => ({
-        id: entry.id,
-        location,
-        timestamp: new Date(entry.date),
-        cloudCoverage: entry.cloudCoverage || 0,
-        url: entry.link?.find((l: any) => l.rel === 'alternative')?.href
-      }));
+      // Convert STAC items to Sentinel2Image format
+      return (data.features || []).map((item: STACItem) => {
+        const visualAsset = item.assets['visual'] || item.assets['rendered_preview'];
+        const tileUrl = visualAsset?.href || this.getTileUrlFromAsset(item);
+        
+        return {
+          id: item.id,
+          location,
+          timestamp: new Date(item.properties.datetime),
+          cloudCoverage: item.properties['eo:cloud_cover'] || 0,
+          url: visualAsset?.href,
+          tileUrl,
+          bbox: item.bbox as [number, number, number, number],
+          bands: {
+            B02: item.assets['B02']?.href,
+            B03: item.assets['B03']?.href,
+            B04: item.assets['B04']?.href,
+            B08: item.assets['B08']?.href
+          }
+        };
+      });
       
     } catch (error) {
       console.error('Error searching Sentinel-2 images:', error);
-      return this.getMockImages(location);
+      // Return empty array instead of mock data
+      console.warn('Sentinel-2 API unavailable, returning empty results');
+      return [];
     }
   }
   
   /**
-   * Get image URL for download
+   * Get tile URL from STAC asset
    */
-  async getImageUrl(imageId: string): Promise<string | null> {
-    if (this.useMockData) {
-      return null; // No real image available
+  private getTileUrlFromAsset(item: STACItem): string | undefined {
+    // Try to get visual/rendered asset first
+    const visual = item.assets['visual'] || item.assets['rendered_preview'];
+    if (visual?.href) return visual.href;
+    
+    // Fallback to RGB composite from individual bands
+    const b04 = item.assets['B04']?.href; // Red
+    const b03 = item.assets['B03']?.href; // Green
+    const b02 = item.assets['B02']?.href; // Blue
+    
+    if (b04 && b03 && b02) {
+      // Return red band as fallback (can be used for visualization)
+      return b04;
     }
     
+    return undefined;
+  }
+  
+  /**
+   * Get image URL for a specific STAC item
+   */
+  async getImageUrl(imageId: string, location?: [number, number]): Promise<string | null> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/odata/v1/Products('${imageId}')/$value`,
-        {
-          headers: {
-            'Authorization': `Basic ${btoa(`${this.username}:${this.password}`)}`,
-            'User-Agent': 'ClimaGuard/1.0'
-          }
-        }
-      );
+      // Search for the specific image
+      const images = location 
+        ? await this.searchImages(location, 0.1)
+        : await this.searchImages([-20.0, 57.5], 0.5);
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      // Return the download URL (would need to handle actual download)
-      return response.url;
+      const image = images.find(img => img.id === imageId);
+      return image?.tileUrl || image?.url || null;
       
     } catch (error) {
       console.error('Error getting image URL:', error);
@@ -140,48 +206,19 @@ export class Sentinel2Service {
   }
   
   /**
-   * Build OpenSearch query for Sentinel-2
+   * Get tile URL for visualization (for map overlays)
    */
-  private buildSearchQuery(
-    location: [number, number],
-    radius: number,
-    startDate: Date,
-    endDate: Date
-  ): string {
-    const [lat, lng] = location;
-    const footprint = `footprint:"Intersects(${lat},${lng})"`;
-    const platform = 'platformname:Sentinel-2';
-    const productType = 'producttype:S2MSI2A'; // Level-2A (atmospherically corrected)
-    const cloudCoverage = 'cloudcoverpercentage:[0 TO 30]'; // Low cloud coverage
-    const dateRange = `beginPosition:[${startDate.toISOString()} TO ${endDate.toISOString()}]`;
+  getTileUrl(image: Sentinel2Image, zoom: number, x: number, y: number): string | null {
+    if (!image.tileUrl) return null;
     
-    return `${footprint} AND ${platform} AND ${productType} AND ${cloudCoverage} AND ${dateRange}`;
+    // For Microsoft Planetary Computer, tiles are typically accessed via signed URLs
+    // This is a simplified version - in production, you'd use the tile service
+    return image.tileUrl;
   }
   
   /**
-   * Mock data generators
+   * REMOVED: getMockImages
+   * No mock data generators allowed - all data must come from real APIs
    */
-  private getMockImages(location: [number, number]): Sentinel2Image[] {
-    // Generate 2-3 mock images
-    const count = 2 + Math.floor(Math.random() * 2);
-    const images: Sentinel2Image[] = [];
-    
-    for (let i = 0; i < count; i++) {
-      images.push({
-        id: `S2A_MSIL2A_${Date.now()}_${i}`,
-        location,
-        timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // Days ago
-        cloudCoverage: Math.random() * 20, // 0-20%
-        bands: {
-          B02: `mock://band2/${i}`,
-          B03: `mock://band3/${i}`,
-          B04: `mock://band4/${i}`,
-          B08: `mock://band8/${i}`
-        }
-      });
-    }
-    
-    return images;
-  }
 }
 
