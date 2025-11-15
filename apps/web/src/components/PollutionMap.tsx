@@ -2,17 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, StatusBadge } from '@/components/ui';
-import dynamic from 'next/dynamic';
+import { PollutionDataMap } from '@/components/map/DataMapComponents';
 import type { PollutionEvent } from '@climaguard/shared/types/ocean';
-
-const MapWithNoSSR = dynamic(() => import('./MapComponent'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-96 bg-gray-100 flex items-center justify-center">
-      <p className="text-gray-600">Loading Map...</p>
-    </div>
-  ),
-});
 
 interface PollutionMapProps {
   location?: [number, number];
@@ -208,7 +199,7 @@ export default function PollutionMap({
             
             {/* Map */}
             <div className="w-full h-96 rounded-lg overflow-hidden border border-gray-300">
-              <MapWithNoSSR />
+              <PollutionDataMap lat={location[0]} lng={location[1]} />
             </div>
           </>
         )}

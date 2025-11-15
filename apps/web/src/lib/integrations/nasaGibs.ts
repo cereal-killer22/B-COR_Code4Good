@@ -89,40 +89,47 @@ export class NASAGIBSService {
    * Get turbidity data for a location
    */
   async getTurbidityData(lat: number, lng: number): Promise<TurbidityData> {
+    // Use Open-Meteo as primary source (more reliable than NASA GIBS tile analysis)
     try {
-      const data = await this.getOceanData(lat, lng);
+      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&daily=sea_surface_temperature_mean&timezone=auto`;
+      const response = await fetch(marineUrl, { 
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 3600 } 
+      });
       
-      return {
-        location: [lat, lng],
-        timestamp: new Date(),
-        turbidity: data.turbidity || 0.3,
-        chlorophyll: data.chlorophyll || 0.5,
-        waterClarity: this.turbidityToClarity(data.turbidity || 0.3),
-        source: 'nasa_gibs'
-      };
-      
-    } catch (error) {
-      console.error('Error getting turbidity data:', error);
-      // Use Open-Meteo as fallback for basic data
-      try {
-        const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&daily=sea_surface_temperature_mean&timezone=auto`;
-        const response = await fetch(marineUrl, { next: { revalidate: 3600 } });
-        if (response.ok) {
-          // If we have SST, we can estimate turbidity (lower SST variation = clearer water)
-          return {
-            location: [lat, lng],
-            timestamp: new Date(),
-            turbidity: 0.25, // Estimated from SST stability
-            chlorophyll: 0.4,
-            waterClarity: 75,
-            source: 'open_meteo'
-          };
-        }
-      } catch (e) {
-        // If all fails, return minimal data
+      if (response.ok) {
+        const data = await response.json();
+        const sst = data.daily?.sea_surface_temperature_mean?.[0] || 28.5;
+        
+        // Estimate turbidity and chlorophyll from SST and location
+        // Tropical waters (SST 26-30°C) typically have:
+        // - Lower turbidity in clear waters (0.2-0.4)
+        // - Moderate chlorophyll (0.3-0.6 mg/m³)
+        const turbidity = sst > 29 ? 0.35 : sst > 27 ? 0.28 : 0.25; // Warmer = slightly more turbid
+        const chlorophyll = sst > 28 ? 0.5 : 0.4; // Warmer = more productivity
+        
+        return {
+          location: [lat, lng],
+          timestamp: new Date(),
+          turbidity: Math.round(turbidity * 100) / 100,
+          chlorophyll: Math.round(chlorophyll * 100) / 100,
+          waterClarity: this.turbidityToClarity(turbidity),
+          source: 'open_meteo'
+        };
       }
-      throw new Error(`Failed to fetch turbidity data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (error) {
+      console.warn('Open-Meteo fallback failed:', error);
     }
+    
+    // Final fallback: return reasonable defaults for Indian Ocean
+    return {
+      location: [lat, lng],
+      timestamp: new Date(),
+      turbidity: 0.3,
+      chlorophyll: 0.4,
+      waterClarity: 70,
+      source: 'default'
+    };
   }
   
   /**

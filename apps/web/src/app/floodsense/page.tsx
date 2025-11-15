@@ -1,4 +1,4 @@
-import FloodMap from '@/components/FloodMap';
+import { FloodDataMap } from '@/components/map/DataMapComponents';
 import { PageHeader } from '@/components/ui';
 
 export default function FloodSensePage() {
@@ -16,7 +16,7 @@ export default function FloodSensePage() {
             Risk assessment based on 24-hour and 72-hour rainfall accumulation.
             Higher precipitation and soil saturation increase flood risk.
           </p>
-          <FloodMap />
+          <FloodDataMap lat={-20.2} lng={57.5} />
         </div>
       </div>
     </div>

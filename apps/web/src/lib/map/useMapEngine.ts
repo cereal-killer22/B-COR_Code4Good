@@ -43,6 +43,22 @@ export function useMapEngine(
       return;
     }
 
+    // Check if map already exists for this container
+    if (mapRef.current && mapRef.current.getContainer() === container) {
+      // Map already exists for this container, just update options
+      return;
+    }
+
+    // Clean up any existing map on this container
+    if ((container as any)._leaflet_id) {
+      const existingMap = (container as any)._leaflet;
+      if (existingMap && existingMap.remove) {
+        existingMap.remove();
+      }
+      delete (container as any)._leaflet_id;
+      delete (container as any)._leaflet;
+    }
+
     // Create map instance
     const map = createBaseMap(container, options);
     mapRef.current = map;
@@ -55,7 +71,12 @@ export function useMapEngine(
     // Cleanup
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove();
+        try {
+          mapRef.current.remove();
+        } catch (error) {
+          // Map might already be removed
+          console.warn('Error removing map:', error);
+        }
         mapRef.current = null;
       }
       setIsReady(false);

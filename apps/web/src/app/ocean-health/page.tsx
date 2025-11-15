@@ -1,5 +1,6 @@
 import OceanHealthDashboard from '@/components/OceanHealthDashboard';
-import OceanHealthMap from '@/components/OceanHealthMap';
+import SDG14Dashboard from '@/components/SDG14Dashboard';
+import { OceanHealthDataMap } from '@/components/map/DataMapComponents';
 import BleachingRiskPanel from '@/components/BleachingRiskPanel';
 import AcidificationTracker from '@/components/AcidificationTracker';
 import CoastalRiskWidget from '@/components/CoastalRiskWidget';
@@ -9,11 +10,15 @@ export default function OceanHealthPage() {
   return (
     <div className="min-h-screen bg-theme">
       <PageHeader 
-        title="🌊 Ocean Health" 
-        subtitle="Comprehensive marine ecosystem monitoring using real-time satellite and ocean data"
+        title="🌊 Ocean Health & SDG 14" 
+        subtitle="Comprehensive marine ecosystem monitoring and SDG 14 (Life Below Water) implementation using real-time satellite and ocean data"
       />
       
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* SDG 14 Comprehensive Dashboard */}
+        <SDG14Dashboard lat={-20.2} lng={57.5} region="Mauritius" />
+        
+        {/* Ocean Health Overview */}
         <OceanHealthDashboard />
         
         {/* Ocean Health Map */}
@@ -23,7 +28,7 @@ export default function OceanHealthPage() {
             Real-time ocean health assessment using NOAA Coral Reef Watch data (SST, HotSpot, DHW).
             Health score calculated from sea surface temperature, heat stress, and degree heating weeks.
           </p>
-          <OceanHealthMap />
+          <OceanHealthDataMap lat={-20.2} lng={57.5} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

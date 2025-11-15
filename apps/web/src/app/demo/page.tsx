@@ -143,7 +143,7 @@ export default function DemoPage() {
       subtitle: 'Interactive Risk Assessment',
       content: (
         <div className="space-y-4">
-          <ClimaGuardMap />
+          <ClimaGuardMap type="overview" />
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-red-100 p-4 rounded-lg text-center">
               <div className="text-2xl font-bold text-red-600">96%</div>

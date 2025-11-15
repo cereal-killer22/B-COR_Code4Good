@@ -15,12 +15,48 @@ import type { Map as LeafletMap } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in React Leaflet
+// This must be done before any marker creation
 if (typeof window !== 'undefined') {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
+  // Ensure Icon.Default exists
+  if (L.Icon.Default) {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  }
+}
+
+/**
+ * Get default icon for markers
+ * Ensures icon is properly initialized
+ */
+function getDefaultIcon(): L.Icon {
+  if (typeof window === 'undefined') {
+    // Return a placeholder for SSR
+    return new L.Icon({
+      iconUrl: '',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+    });
+  }
+
+  // Check if default icon is already configured
+  if (L.Icon.Default && (L.Icon.Default.prototype as any)._getIconUrl === undefined) {
+    return new L.Icon.Default();
+  }
+
+  // Create a custom icon if default is not available
+  return new L.Icon({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41],
   });
 }
 
@@ -150,9 +186,31 @@ export function createBaseMap(
     style,
   } = options;
 
+  // Get the container element
+  const container = typeof containerId === 'string' 
+    ? document.getElementById(containerId)
+    : containerId;
+
+  if (!container) {
+    throw new Error(`Map container not found: ${typeof containerId === 'string' ? containerId : 'HTMLElement'}`);
+  }
+
+  // Check if container already has a map instance
+  // Leaflet stores the map instance on the container element
+  if ((container as any)._leaflet_id) {
+    // Container already has a map, remove it first
+    const existingMap = (container as any)._leaflet;
+    if (existingMap && existingMap.remove) {
+      existingMap.remove();
+    }
+    // Clear the leaflet ID
+    delete (container as any)._leaflet_id;
+    delete (container as any)._leaflet;
+  }
+
   // Create map instance with proper CRS (WGS84 - EPSG:4326)
   // Leaflet automatically handles WGS84 → Web Mercator (EPSG:3857) projection
-  const map = L.map(containerId, {
+  const map = L.map(container, {
     center,
     zoom,
     minZoom,
@@ -409,8 +467,11 @@ export function addMarker(
   options: MarkerOptions = {},
   popupContent?: string | HTMLElement
 ): L.Marker {
+  // Ensure icon is set - use provided icon or default
+  const icon = options.icon || getDefaultIcon();
+
   const marker = L.marker(coords, {
-    icon: options.icon,
+    icon: icon,
     title: options.title,
     alt: options.alt,
     opacity: options.opacity,

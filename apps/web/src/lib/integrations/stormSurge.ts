@@ -36,10 +36,13 @@ export class StormSurgeService {
         forecast_days: '3'
       });
       
-      // Add daily parameters separately (multi-value)
+      // Add daily parameters (wind_speed_max is not available as daily, use hourly instead)
       params.append('daily', 'wave_height_max');
-      params.append('daily', 'wind_speed_max');
       params.append('daily', 'swell_significant_height');
+      
+      // Add hourly parameters for wind speed (wind_speed_max is not a valid daily parameter)
+      params.append('hourly', 'wind_speed_10m');
+      params.append('hourly', 'swell_wave_height');
       
       const url = `${this.baseUrl}?${params.toString()}`;
 
@@ -73,22 +76,33 @@ export class StormSurgeService {
       }
       
       const daily = data.daily;
+      const hourly = data.hourly || {};
 
-      // Get today's data (index 0)
-      // Note: wind_speed_max is in m/s, convert to km/h
+      // Get today's wave height from daily data
       const waveHeightMax = daily.wave_height_max?.[0] || 0;
-      const windSpeedMaxMs = daily.wind_speed_max?.[0] || 0;
+      
+      // Get wind speed max from hourly data (first 24 hours = today)
+      // Calculate max wind speed from hourly data since wind_speed_max is not available as daily
+      let windSpeedMaxMs = 0;
+      if (hourly.wind_speed_10m && hourly.wind_speed_10m.length > 0) {
+        // Get max wind speed from first 24 hours (today)
+        const todayWindSpeeds = hourly.wind_speed_10m.slice(0, 24);
+        windSpeedMaxMs = Math.max(...todayWindSpeeds.filter((v: number) => v != null)) || 0;
+      }
       const windSpeedMax = windSpeedMaxMs * 3.6; // Convert m/s to km/h
       
-      // Try to get swell from hourly data if available, otherwise use 0
+      // Get swell height from daily or hourly data
       let swellHeight = 0;
-      if (data.hourly?.swell_wave_height) {
+      if (daily.swell_significant_height && daily.swell_significant_height[0] !== undefined) {
+        swellHeight = daily.swell_significant_height[0];
+      } else if (hourly.swell_wave_height && hourly.swell_wave_height.length > 0) {
         // Get average of first 24 hours (today)
-        const hourlySwell = data.hourly.swell_wave_height.slice(0, 24);
-        const sum = hourlySwell.reduce((acc: number, val: number) => acc + (val || 0), 0);
-        swellHeight = sum / hourlySwell.length;
-      } else if (daily.swell_significant_height) {
-        swellHeight = daily.swell_significant_height[0] || 0;
+        const hourlySwell = hourly.swell_wave_height.slice(0, 24);
+        const validSwell = hourlySwell.filter((v: number) => v != null);
+        if (validSwell.length > 0) {
+          const sum = validSwell.reduce((acc: number, val: number) => acc + val, 0);
+          swellHeight = sum / validSwell.length;
+        }
       }
 
       // Calculate storm surge risk score

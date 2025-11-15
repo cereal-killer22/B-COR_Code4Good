@@ -77,11 +77,12 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300">
+    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300" style={{ position: 'relative', minHeight: '500px', height: '500px' }}>
       <MapContainer
         center={[lat, lng]}
         zoom={10}
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100%', width: '100%', minHeight: '100%', minWidth: '100%' }}
+        className="z-0"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

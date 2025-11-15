@@ -54,15 +54,25 @@ export default function MapEngineComponent({
     }
   }, [isReady, map, onMapReady]);
 
+  // Ensure map container fills properly
+  useEffect(() => {
+    if (isReady && map) {
+      // Trigger map resize to ensure it fills container
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+    }
+  }, [isReady, map]);
+
   return (
     <div
       id={containerId}
       ref={containerRef}
-      className={className}
-      style={style}
+      className={`${className} w-full h-full`}
+      style={{ ...style, minHeight: '100%', minWidth: '100%', position: 'relative', zIndex: 0 }}
     >
       {!isReady && (
-        <div className="flex items-center justify-center h-full w-full bg-gray-100 dark:bg-gray-800">
+        <div className="flex items-center justify-center h-full w-full bg-gray-100 dark:bg-gray-800" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
           <p className="text-gray-600 dark:text-gray-400">Loading Map...</p>
         </div>
       )}
