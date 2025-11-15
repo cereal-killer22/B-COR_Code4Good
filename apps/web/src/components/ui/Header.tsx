@@ -11,10 +11,11 @@ interface HeaderProps {
 export const PageHeader: React.FC<HeaderProps> = ({ title, subtitle, children }) => {
   return (
     <div 
-      className="border-b shadow-sm"
+      className="sticky top-0 z-50 border-b shadow-md backdrop-blur-md transition-shadow duration-200"
       style={{
         backgroundColor: 'var(--card-background)',
         borderColor: 'var(--card-border)',
+        opacity: 0.98,
       }}
     >
       <div className="max-w-7xl mx-auto px-4 py-6">
