@@ -63,16 +63,26 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Call LLM API (OpenAI, Claude, or fallback)
+ * Call LLM API (Google Gemini, OpenAI, or fallback)
  */
 async function callLLM(
   message: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  const useOpenAI = apiKey && apiKey.length > 0;
+  // Try Google Gemini first
+  const geminiApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+  if (geminiApiKey && geminiApiKey.length > 0) {
+    try {
+      return await callGemini(message, history, geminiApiKey);
+    } catch (error) {
+      console.error('Gemini API error, falling back to local model:', error);
+      // Fall through to local model
+    }
+  }
 
-  if (useOpenAI) {
+  // Try OpenAI as fallback
+  const openAiApiKey = process.env.OPENAI_API_KEY;
+  if (openAiApiKey && openAiApiKey.length > 0) {
     try {
       return await callOpenAI(message, history);
     } catch (error) {
@@ -86,7 +96,86 @@ async function callLLM(
 }
 
 /**
- * Call OpenAI API
+ * Call Google Gemini API
+ */
+async function callGemini(
+  message: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  apiKey: string
+): Promise<string> {
+  // Build conversation history for Gemini
+  // Gemini uses alternating user/assistant messages in contents array
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  
+  // Add conversation history
+  for (const msg of history) {
+    contents.push({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    });
+  }
+  
+  // Add current user message
+  contents.push({
+    role: 'user',
+    parts: [{ text: message }]
+  });
+
+  // Use faster model for rapid responses (gemini-1.5-flash is faster than gemini-pro)
+  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  // Create AbortController for timeout (5 seconds max)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: contents,
+        systemInstruction: {
+          parts: [{ text: CLIMAGUARD_AI_PROMPT }]
+        },
+        generationConfig: {
+          temperature: 0.7, // Balanced for detailed, natural responses
+          maxOutputTokens: 300, // Increased for elaborate answers with follow-up questions
+          topP: 0.8, // Balanced for quality responses
+          topK: 40 // Balanced for diverse vocabulary
+        }
+      })
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`Gemini API error: ${response.status} ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      throw new Error('No response from Gemini API');
+    }
+
+    return text.trim();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - please try again');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Call OpenAI API (fallback)
  */
 async function callOpenAI(
   message: string,
@@ -116,10 +205,11 @@ async function callOpenAI(
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       messages,
-      temperature: 0.7,
-      max_tokens: 150, // Limit to encourage concise responses (2-3 sentences)
-      presence_penalty: 0.3, // Encourage staying on topic
-      frequency_penalty: 0.2 // Reduce repetition
+      temperature: 0.7, // Balanced for detailed, natural responses
+      max_tokens: 300, // Increased for elaborate answers with follow-up questions
+      presence_penalty: 0.3,
+      frequency_penalty: 0.2,
+      stream: false // Explicitly set to false for faster response
     })
   });
 

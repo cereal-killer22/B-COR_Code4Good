@@ -9,7 +9,7 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-theme" style={{ background: 'linear-gradient(to bottom right, var(--background-secondary), var(--background))' }}>
       <PageHeader 
-        title="🌡️ ClimaWise" 
+        title="💬 ClimaWise" 
         subtitle="Your intelligent assistant for Cyclones, Floods & Ocean Health"
       >
         <Link href="/dashboard">

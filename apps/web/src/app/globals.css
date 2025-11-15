@@ -571,3 +571,18 @@ textarea:focus-visible {
     --card-border: #ffffff;
   }
 }
+
+/* Hide scrollbar for horizontal scrollable elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Smooth scrolling for horizontal scroll */
+.scrollbar-hide {
+  scroll-behavior: smooth;
+}

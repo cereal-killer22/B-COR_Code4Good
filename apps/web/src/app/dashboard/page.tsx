@@ -263,7 +263,7 @@ export default function Dashboard() {
               { id: 'flood', label: 'FloodSense', icon: '🌊', description: 'Flood Monitoring' },
               { id: 'ocean-health', label: 'Ocean Health', icon: '🌊', description: 'SDG 14 - Marine Protection' },
               { id: 'alerts', label: 'Alerts', icon: '🚨', description: 'Active Warnings' },
-              { id: 'chat', label: 'ClimaWise', icon: '🌡️', description: 'Cyclone, Flood & Ocean AI', href: '/chat' },
+              { id: 'chat', label: 'ClimaWise', icon: '💬', description: 'Cyclone, Flood & Ocean AI', href: '/chat' },
             ] as TabItem[]).map((tab) => {
               if (tab.href) {
                 return (
