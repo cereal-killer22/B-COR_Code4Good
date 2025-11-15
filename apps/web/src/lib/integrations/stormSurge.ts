@@ -28,18 +28,18 @@ export class StormSurgeService {
    */
   async getStormSurgeRisk(lat: number, lng: number): Promise<StormSurgeData> {
     try {
-      // Use the same parameter format as the working OpenMeteoMarineService
-      // Try with daily parameters first (swell might not be available as daily)
+      // Open-Meteo requires multiple query params for daily/hourly variables (not comma-separated)
       const params = new URLSearchParams({
         latitude: lat.toString(),
         longitude: lng.toString(),
-        daily: 'wave_height_max,wind_speed_max',
         timezone: 'auto',
         forecast_days: '3'
       });
       
-      // Add hourly for swell if needed
-      params.append('hourly', 'swell_wave_height');
+      // Add daily parameters separately (multi-value)
+      params.append('daily', 'wave_height_max');
+      params.append('daily', 'wind_speed_max');
+      params.append('daily', 'swell_significant_height');
       
       const url = `${this.baseUrl}?${params.toString()}`;
 

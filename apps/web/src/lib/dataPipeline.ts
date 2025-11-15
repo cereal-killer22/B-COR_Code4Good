@@ -5,6 +5,7 @@
 
 import * as Papa from 'papaparse';
 import { CycloneDataPoint, FloodRiskInput } from './models/browserModels';
+import { getAPIKeys, hasAPIKey } from '@/lib/config/apiKeys';
 
 export interface WeatherStation {
   id: string;
@@ -35,24 +36,17 @@ export interface RiverGaugeData {
 }
 
 export class WeatherDataPipeline {
-  private readonly API_KEYS = {
-    openWeather: typeof window !== 'undefined' ? 
-      process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY : 
-      process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY,
-    nasa: typeof window !== 'undefined' ? 
-      process.env.NEXT_PUBLIC_NASA_API_KEY : 
-      process.env.NEXT_PUBLIC_NASA_API_KEY,
-    noaa: typeof window !== 'undefined' ? 
-      process.env.NEXT_PUBLIC_NOAA_API_KEY : 
-      process.env.NEXT_PUBLIC_NOAA_API_KEY
-  };
+  private readonly API_KEYS: ReturnType<typeof getAPIKeys>;
 
   constructor() {
+    // Get API keys from centralized config
+    this.API_KEYS = getAPIKeys();
+    
     // Debug API keys availability
     console.log('🔑 API Keys Status:', {
-      openWeather: this.API_KEYS.openWeather ? '✅ Available' : '❌ Missing',
-      nasa: this.API_KEYS.nasa ? '✅ Available' : '❌ Missing',
-      noaa: this.API_KEYS.noaa ? '✅ Available' : '❌ Missing'
+      openWeather: hasAPIKey('openWeather') ? '✅ Available' : '❌ Missing',
+      nasa: hasAPIKey('nasa') ? '✅ Available' : '❌ Missing',
+      noaa: hasAPIKey('noaa') ? '✅ Available' : '❌ Missing'
     });
   }
 

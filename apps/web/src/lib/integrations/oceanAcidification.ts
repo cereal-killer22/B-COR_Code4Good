@@ -4,6 +4,7 @@
  */
 
 import type { AcidificationMetrics } from '@climaguard/shared/types/ocean';
+import { getAPIKeys, hasAPIKey } from '@/lib/config/apiKeys';
 
 export interface AcidificationData {
   pH: number;
@@ -19,11 +20,12 @@ export class OceanAcidificationService {
   private useMockData: boolean;
   
   constructor() {
-    this.apiKey = process.env.OCEAN_ACIDIFICATION_API_KEY || '';
-    this.useMockData = !this.apiKey || this.apiKey.length < 10;
+    const keys = getAPIKeys();
+    this.apiKey = keys.oceanAcidification;
+    this.useMockData = !hasAPIKey('oceanAcidification');
     
     if (this.useMockData) {
-      console.warn('⚠️ Ocean Acidification API key not configured - using mock data');
+      console.warn('⚠️ Ocean Acidification API key not configured - service unavailable');
     }
   }
   

@@ -45,13 +45,20 @@ export class OpenMeteoMarineService {
   ): Promise<OpenMeteoMarineData> {
     try {
       // Build query parameters
+      // Open-Meteo requires multiple query params for daily/hourly variables (not comma-separated)
       const params = new URLSearchParams({
         latitude: lat.toString(),
         longitude: lng.toString(),
-        daily: 'sea_surface_temperature_mean,wave_height_max,wind_speed_max,swell_significant_height,wind_wave_height',
         timezone: 'auto',
         forecast_days: days.toString()
       });
+      
+      // Add daily parameters separately (multi-value)
+      params.append('daily', 'sea_surface_temperature_mean');
+      params.append('daily', 'wave_height_max');
+      params.append('daily', 'wind_speed_max');
+      params.append('daily', 'swell_significant_height');
+      params.append('daily', 'wind_wave_height');
       
       const url = `${this.baseUrl}?${params.toString()}`;
       

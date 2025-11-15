@@ -318,10 +318,12 @@ export class CycloneFormationPredictor {
    * Fetch real environmental conditions for a specific location
    */
   private async fetchRealEnvironmentalConditions(lat: number, lng: number): Promise<EnvironmentalConditions> {
-    const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+    const { getAPIKeys, hasAPIKey } = await import('@/lib/config/apiKeys');
+    const keys = getAPIKeys();
+    const API_KEY = keys.openWeather;
     
-    if (!API_KEY || API_KEY === 'your_api_key_here' || API_KEY.length < 10) {
-      console.warn('⚠️ Invalid OpenWeather API key - using fallback data');
+    if (!hasAPIKey('openWeather')) {
+      console.warn('⚠️ OpenWeather API key not configured - using fallback data');
       return this.getRealisticFallbackConditions(lat, lng);
     }
     

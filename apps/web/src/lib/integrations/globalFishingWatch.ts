@@ -3,6 +3,7 @@
  * Tracks fishing activity and vessel movements
  */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { SustainableFishingMetrics } from '@climaguard/shared/types/ocean';
 
 export interface FishingVessel {
@@ -23,17 +24,20 @@ export interface FishingActivity {
   vessels: FishingVessel[];
 }
 
+import { getAPIKeys, hasAPIKey } from '@/lib/config/apiKeys';
+
 export class GlobalFishingWatch {
   private apiKey: string;
   private baseUrl = 'https://gateway.api.globalfishingwatch.org/v2';
   private useMockData: boolean;
   
   constructor() {
-    this.apiKey = process.env.GLOBAL_FISHING_WATCH_API_KEY || '';
-    this.useMockData = !this.apiKey || this.apiKey.length < 10;
+    const keys = getAPIKeys();
+    this.apiKey = keys.globalFishingWatch;
+    this.useMockData = !hasAPIKey('globalFishingWatch');
     
     if (this.useMockData) {
-      console.warn('⚠️ Global Fishing Watch API key not configured - using mock data');
+      console.warn('⚠️ Global Fishing Watch API key not configured - service unavailable');
     }
   }
   

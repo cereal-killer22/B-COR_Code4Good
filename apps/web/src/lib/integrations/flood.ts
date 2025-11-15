@@ -28,12 +28,16 @@ export class FloodRiskService {
    */
   async getFloodRisk(lat: number, lng: number): Promise<FloodRiskData> {
     try {
+      // Open-Meteo requires multiple query params for daily/hourly variables (not comma-separated)
       const url = new URL(this.baseUrl);
       url.searchParams.set('latitude', lat.toString());
       url.searchParams.set('longitude', lng.toString());
-      url.searchParams.set('hourly', 'precipitation,soil_moisture_0_to_10cm');
       url.searchParams.set('forecast_days', '3');
       url.searchParams.set('timezone', 'auto');
+      
+      // Add hourly parameters separately (multi-value)
+      url.searchParams.append('hourly', 'precipitation');
+      url.searchParams.append('hourly', 'soil_moisture_0_to_10cm');
 
       const response = await fetch(url.toString(), {
         headers: {

@@ -28,13 +28,25 @@ export class WeatherService {
    */
   async getCurrentWeather(lat: number, lng: number): Promise<WeatherData> {
     try {
+      // Open-Meteo requires multiple query params for daily/hourly variables (not comma-separated)
       const url = new URL(this.baseUrl);
       url.searchParams.set('latitude', lat.toString());
       url.searchParams.set('longitude', lng.toString());
-      url.searchParams.set('hourly', 'temperature_2m,relativehumidity_2m,pressure_msl,windspeed_10m,windgusts_10m,precipitation');
-      url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_sum');
       url.searchParams.set('timezone', 'auto');
       url.searchParams.set('forecast_days', '7');
+      
+      // Add hourly parameters separately (multi-value)
+      url.searchParams.append('hourly', 'temperature_2m');
+      url.searchParams.append('hourly', 'relativehumidity_2m');
+      url.searchParams.append('hourly', 'pressure_msl');
+      url.searchParams.append('hourly', 'windspeed_10m');
+      url.searchParams.append('hourly', 'windgusts_10m');
+      url.searchParams.append('hourly', 'precipitation');
+      
+      // Add daily parameters separately (multi-value)
+      url.searchParams.append('daily', 'temperature_2m_max');
+      url.searchParams.append('daily', 'temperature_2m_min');
+      url.searchParams.append('daily', 'precipitation_sum');
 
       const response = await fetch(url.toString(), {
         headers: {

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getAPIKeys, hasAPIKey } from '@/lib/config/apiKeys';
 
 interface Alert {
   id: string;
@@ -81,9 +82,10 @@ async function fetchActiveAlerts(): Promise<Alert[]> {
  * Fetch alerts from OpenWeather API
  */
 async function fetchOpenWeatherAlerts(alerts: Alert[]): Promise<void> {
-  const API_KEY = process.env.OPENWEATHER_API_KEY;
+  const keys = getAPIKeys();
+  const API_KEY = keys.openWeather;
   
-  if (!API_KEY) {
+  if (!hasAPIKey('openWeather')) {
     console.warn('⚠️ OpenWeather API key not configured');
     return;
   }
@@ -145,9 +147,10 @@ async function fetchOpenWeatherAlerts(alerts: Alert[]): Promise<void> {
  * Generate alerts based on current weather conditions
  */
 async function fetchWeatherConditionAlerts(alerts: Alert[]): Promise<void> {
-  const API_KEY = process.env.OPENWEATHER_API_KEY;
+  const keys = getAPIKeys();
+  const API_KEY = keys.openWeather;
   
-  if (!API_KEY) return;
+  if (!hasAPIKey('openWeather')) return;
 
   try {
     console.log('🌦️ Analyzing current weather conditions...');

@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@climaguard/shared": [
+        "../../packages/shared"
+      ],
+      "@climaguard/shared/*": [
+        "../../packages/shared/*"
       ]
     }
   },
