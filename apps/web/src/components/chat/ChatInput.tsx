@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -9,8 +10,39 @@ interface ChatInputProps {
 
 export default function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Voice recording hook
+  const { isRecording, isSupported, startRecording, stopRecording } = useVoiceRecorder({
+    onResult: (text) => {
+      console.log('Voice result received:', text);
+      if (text && text.trim()) {
+        // Update message state
+        setMessage((prev) => {
+          const newText = prev ? `${prev} ${text}` : text;
+          // Focus and set cursor position after state update
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+              // Use the new text for cursor position
+              textareaRef.current.setSelectionRange(newText.trim().length, newText.trim().length);
+            }
+          }, 50);
+          return newText.trim();
+        });
+        setVoiceError(null);
+      }
+    },
+    onError: (error) => {
+      console.error('Voice recognition error:', error);
+      setVoiceError(error);
+      setTimeout(() => setVoiceError(null), 5000); // Clear error after 5 seconds
+    },
+  });
+
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -80,6 +112,73 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
             </div>
           )}
         </div>
+        
+        {/* Voice Input Button */}
+        {isSupported && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Prevent rapid clicking
+              if (disabled) return;
+              
+              if (isRecording) {
+                console.log('Button clicked: Stop recording');
+                stopRecording();
+              } else {
+                console.log('Button clicked: Start recording');
+                startRecording();
+              }
+            }}
+            disabled={disabled}
+            className={`
+              px-4 py-4 rounded-2xl transition-all duration-200
+              flex items-center justify-center
+              min-w-[56px] h-[56px]
+              focus:outline-none focus:ring-4 focus:ring-offset-2
+              disabled:opacity-50 disabled:cursor-not-allowed
+              ${isRecording
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50 voice-recording-pulse focus:ring-red-500/50'
+                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 shadow-md hover:shadow-lg focus:ring-gray-400/50'
+              }
+            `}
+            aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+            title={isRecording ? 'Stop recording' : 'Click to speak'}
+          >
+            <svg
+              className={`w-6 h-6 ${isRecording ? 'voice-icon-pulse' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              {isRecording ? (
+                // Stop icon (square) when recording
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M6 6h12v12H6z"
+                />
+              ) : (
+                // Microphone icon when not recording
+                <>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                  />
+                </>
+              )}
+            </svg>
+          </button>
+        )}
+
+        {/* Send Button */}
         <button
           onClick={handleSend}
           disabled={disabled || !message.trim()}
@@ -116,6 +215,39 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
             </svg>
           )}
         </button>
+      </div>
+      
+      {/* Error Message */}
+      {voiceError && (
+        <div 
+          className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="flex items-start gap-2">
+            <svg 
+              className="w-5 h-5 flex-shrink-0 mt-0.5" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>{voiceError}</p>
+          </div>
+        </div>
+      )}
+      <div 
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-4 px-2"
+        id="keyboard-hints"
+      >
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+          Press <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-sm">Enter</kbd> to send
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-sm">Shift+Enter</kbd> for new line
+        </p>
       </div>
     </div>
   );

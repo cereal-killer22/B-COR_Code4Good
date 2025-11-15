@@ -4,11 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import FontSizeControl from './FontSizeControl';
 import HighContrastToggle from './HighContrastToggle';
-<<<<<<< HEAD
-=======
-import ColorBlindFilter from './ColorBlindFilter';
 import TTSToggle from './TTSToggle';
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
+import ColorBlindFilter from './ColorBlindFilter';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -142,7 +139,6 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
         aria-labelledby="settings-panel-title"
         className="settings-panel fixed z-50 border shadow-lg"
         style={{
-          maxHeight: 'calc(100vh - 4rem)',
           backgroundColor: 'var(--card-background)',
           borderColor: 'var(--card-border)',
           boxShadow: 'var(--shadow-lg)',
@@ -150,11 +146,11 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-theme" style={{ borderColor: 'var(--card-border)' }}>
+        <div className="flex items-center justify-between p-3 border-b border-theme" style={{ borderColor: 'var(--card-border)' }}>
           <h2
             ref={titleRef}
             id="settings-panel-title"
-            className="text-lg font-semibold text-theme"
+            className="text-base font-semibold text-theme"
             style={{ color: 'var(--foreground)' }}
           >
             Accessibility Settings
@@ -193,12 +189,12 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
+        <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(60vh - 5rem)' }}>
           {/* Light/Dark Mode Toggle */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label
               htmlFor="theme-toggle"
-              className="block text-sm font-medium mb-3 text-theme"
+              className="block text-sm font-medium mb-2 text-theme"
               style={{ color: 'var(--foreground)' }}
             >
               Theme
@@ -207,7 +203,7 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
               id="theme-toggle"
               type="button"
               onClick={handleThemeToggle}
-              className="w-full flex items-center justify-between p-3 rounded-lg border border-theme transition-all hover:bg-theme-secondary focus:outline-none"
+              className="w-full flex items-center justify-between p-2.5 rounded-lg border border-theme transition-all hover:bg-theme-secondary focus:outline-none"
               style={{
                 backgroundColor: 'var(--card-background)',
                 borderColor: 'var(--card-border)',
@@ -278,20 +274,14 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
           {/* High Contrast Toggle */}
           <HighContrastToggle />
 
-<<<<<<< HEAD
-          {/* Placeholder for future accessibility controls */}
-          <div className="text-sm text-theme-secondary" style={{ color: 'var(--foreground-secondary)' }}>
-            More accessibility options coming soon...
-=======
           {/* Text-to-Speech Toggle */}
-          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--card-border)' }}>
             <TTSToggle />
           </div>
 
           {/* Color-Blind Filter */}
-          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--card-border)' }}>
             <ColorBlindFilter />
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
           </div>
         </div>
       </div>

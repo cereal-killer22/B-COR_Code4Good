@@ -62,17 +62,8 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center py-16">
           <div className="mb-8">
-<<<<<<< HEAD
             <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6">
               🛡️ ClimaGuard
-=======
-            <h1 className="text-7xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-6 flex items-center justify-center gap-3">
-              🌡️ ClimaGuard
-              <MicIcon 
-                text="ClimaGuard. AI-Powered Climate Risk Platform. Protecting Mauritius from climate disasters with advanced prediction technology." 
-                size="medium" 
-              />
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
             </h1>
             <h2 className="text-3xl font-semibold text-theme mb-4 flex items-center justify-center gap-2">
               AI-Powered Climate Risk Platform
@@ -159,16 +150,8 @@ export default function Home() {
           <div className="group cursor-pointer" onClick={() => window.location.href = '/chat'}>
             <Card className="hover:shadow-xl transition-all duration-300 border-2 border-cyan-200">
               <div className="text-center">
-<<<<<<< HEAD
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">💬</div>
                 <h3 className="text-lg font-semibold text-cyan-700 mb-2">ClimaWise</h3>
-=======
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🌡️</div>
-                <h3 className="text-lg font-semibold text-cyan-700 mb-2 flex items-center justify-center gap-2">
-                  ClimaWise
-                  <MicIcon text="ClimaWise. Cyclone, Flood and Ocean AI" size="small" />
-                </h3>
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
                 <p className="text-sm text-cyan-600">Cyclone, Flood & Ocean AI</p>
               </div>
             </Card>
