@@ -448,6 +448,8 @@ textarea:focus-visible {
   right: 1rem;
   left: auto;
   transform: none;
+  width: 420px;
+  max-width: 90vw;
 }
 
 /* Mobile: centered */
@@ -457,6 +459,8 @@ textarea:focus-visible {
     left: 50%;
     right: auto;
     transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 420px;
   }
 }
 
@@ -570,4 +574,11 @@ textarea:focus-visible {
     --foreground: #ffffff;
     --card-border: #ffffff;
   }
+}
+
+/* Color-blind filter application */
+[data-color-blind="protanopia"] *,
+[data-color-blind="deuteranopia"] *,
+[data-color-blind="tritanopia"] * {
+  filter: inherit;
 }

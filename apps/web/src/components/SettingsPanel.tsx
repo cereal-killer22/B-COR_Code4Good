@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import FontSizeControl from './FontSizeControl';
 import HighContrastToggle from './HighContrastToggle';
+import ColorBlindFilter from './ColorBlindFilter';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -137,7 +138,8 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
         aria-labelledby="settings-panel-title"
         className="settings-panel fixed z-50 border shadow-lg"
         style={{
-          maxHeight: 'calc(100vh - 4rem)',
+          maxWidth: '420px',
+          maxHeight: '70vh',
           backgroundColor: 'var(--card-background)',
           borderColor: 'var(--card-border)',
           boxShadow: 'var(--shadow-lg)',
@@ -188,7 +190,7 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 10rem)' }}>
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 6rem)' }}>
           {/* Light/Dark Mode Toggle */}
           <div className="mb-6">
             <label
@@ -273,9 +275,9 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
           {/* High Contrast Toggle */}
           <HighContrastToggle />
 
-          {/* Placeholder for future accessibility controls */}
-          <div className="text-sm text-theme-secondary" style={{ color: 'var(--foreground-secondary)' }}>
-            More accessibility options coming soon...
+          {/* Color-Blind Filter */}
+          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
+            <ColorBlindFilter />
           </div>
         </div>
       </div>
