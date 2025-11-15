@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import MicIcon from '@/components/MicIcon';
 
 interface HeaderProps {
   title: string;
@@ -22,10 +23,11 @@ export const PageHeader: React.FC<HeaderProps> = ({ title, subtitle, children })
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <h1 
-              className="text-3xl font-bold"
+              className="text-3xl font-bold flex items-center gap-2"
               style={{ color: 'var(--foreground)' }}
             >
               {title}
+              <MicIcon text={`${title}${subtitle ? `. ${subtitle}` : ''}`} size="small" />
             </h1>
             {subtitle && (
               <p 
@@ -64,10 +66,11 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
     <div className={`flex items-center justify-between ${className}`}>
       <div>
         <h2 
-          className="text-xl font-semibold"
+          className="text-xl font-semibold flex items-center gap-2"
           style={{ color: 'var(--foreground)' }}
         >
           {title}
+          <MicIcon text={`${title}${subtitle ? `. ${subtitle}` : ''}`} size="small" />
         </h2>
         {subtitle && (
           <p 

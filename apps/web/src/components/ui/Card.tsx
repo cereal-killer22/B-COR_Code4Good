@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { cardVariants } from '@/lib/design-system';
+import MicIcon from '@/components/MicIcon';
 
 interface CardProps {
   children: React.ReactNode;
@@ -124,12 +127,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <Card variant="flat" padding="md" className={`hover:shadow-md transition-shadow ${className}`}>
+    <Card variant="flat" padding="md" className={`hover:shadow-md transition-shadow relative ${className}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-2xl">{icon}</span>
-            <h3 className="text-sm font-medium text-theme-secondary">{title}</h3>
+            <h3 className="text-sm font-medium text-theme-secondary">
+              {title}
+            </h3>
           </div>
           <div className="space-y-1">
             <div className="text-2xl font-bold text-theme">{value}</div>
@@ -144,6 +149,13 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             <span>{trend.value}</span>
           </div>
         )}
+      </div>
+      {/* MicIcon positioned at bottom right */}
+      <div className="absolute bottom-3 right-3">
+        <MicIcon 
+          text={`${title}. ${value}${subtitle ? `. ${subtitle}` : ''}${trend ? `. ${trend.value}` : ''}`} 
+          size="small" 
+        />
       </div>
     </Card>
   );
