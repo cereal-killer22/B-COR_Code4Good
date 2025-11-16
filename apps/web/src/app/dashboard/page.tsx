@@ -9,7 +9,6 @@ import LiveTimeDisplay from '@/components/LiveTimeDisplay';
 import OceanHealthDashboard from '@/components/OceanHealthDashboard';
 import FloodLayerToggles from '@/components/map/FloodLayerToggles';
 import CycloneLayerToggles from '@/components/map/CycloneLayerToggles';
-import OverviewToggle from '@/components/map/OverviewToggle';
 import { Card, StatusBadge, MetricCard, Button, PageHeader, SectionHeader } from '@/components/ui';
 import { useAutoRead } from '@/hooks/useAutoRead';
 import { useTextToSpeech } from '@/contexts/TextToSpeechContext';
@@ -388,50 +387,11 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Main Map Section */}
-              <div className="xl:col-span-2">
-                <Card className="h-full">
-                  <SectionHeader 
-                    title="🗺️ Real-Time Risk Map"
-                    subtitle="Live monitoring of climate risks across Mauritius"
-                    action={
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                            <span>High Risk</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                            <span>Moderate</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <span>Low Risk</span>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                    className="mb-6"
-                  />
-                  <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
-                    <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200">
-                      <ClimaGuardMap />
-                    </div>
-                    <div className="absolute top-4 right-4 z-10 max-w-[280px]">
-                      <OverviewToggle />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Right Sidebar */}
-              <div className="space-y-6">
-                
-                {/* Current Cyclone Status */}
-                <Card className="relative">
+              {/* Current Cyclone Status */}
+              <Card className="relative">
                   <div className="mb-4">
                     <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
                       🌀 Active Cyclone
@@ -515,7 +475,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-blue-600">Trained:</span>
-                          <span className="font-semibold">2d ago</span>
+                          <span className="font-semibold">1d ago</span>
                         </div>
                       </div>
                     </div>
@@ -536,8 +496,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                </Card>
-              </div>
+              </Card>
             </div>
             
             {/* Additional Data Sources & Alerts Section */}

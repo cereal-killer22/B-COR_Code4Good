@@ -11,6 +11,23 @@ export default function OverviewToggle() {
   const { layers, toggleFloodLayer, toggleCycloneLayer, toggleOceanHealthLayer, toggleElevationTerrain } = useLayerToggle();
   
   const layerConfig = [
+    // Coral Reef / Ocean Health Layers
+    { 
+      id: 'coastalSegments' as const, 
+      label: 'Coral Reef Regions', 
+      icon: '🪸', 
+      color: '#22c55e',
+      category: 'ocean',
+      toggle: (enabled: boolean) => toggleOceanHealthLayer('coastalSegments', enabled)
+    },
+    { 
+      id: 'reefHealth' as const, 
+      label: 'Reef Health Markers', 
+      icon: '🪸', 
+      color: '#10b981',
+      category: 'ocean',
+      toggle: (enabled: boolean) => toggleOceanHealthLayer('reefHealth', enabled)
+    },
     // Flood Layers
     { 
       id: 'floodZones' as const, 
@@ -44,92 +61,13 @@ export default function OverviewToggle() {
       category: 'flood',
       toggle: (enabled: boolean) => toggleFloodLayer('rainfall72h', enabled)
     },
-    // Cyclone Layers
-    { 
-      id: 'cycloneTracks' as const, 
-      label: 'Cyclone Tracks', 
-      icon: '🌀', 
-      color: '#FF3B30',
-      category: 'cyclone',
-      toggle: (enabled: boolean) => toggleCycloneLayer('cycloneTracks', enabled)
-    },
-    { 
-      id: 'cycloneWindRings' as const, 
-      label: 'Wind Radius Rings', 
-      icon: '💨', 
-      color: '#FF9500',
-      category: 'cyclone',
-      toggle: (enabled: boolean) => toggleCycloneLayer('cycloneWindRings', enabled)
-    },
-    { 
-      id: 'coneOfUncertainty' as const, 
-      label: 'Cone of Uncertainty', 
-      icon: '📐', 
-      color: '#FF3B30',
-      category: 'cyclone',
-      toggle: (enabled: boolean) => toggleCycloneLayer('coneOfUncertainty', enabled)
-    },
-    { 
-      id: 'impactZones' as const, 
-      label: 'Impact Zones', 
-      icon: '⚠️', 
-      color: '#dc2626',
-      category: 'cyclone',
-      toggle: (enabled: boolean) => toggleCycloneLayer('impactZones', enabled)
-    },
-    // Ocean Health Layers
-    { 
-      id: 'coastalSegments' as const, 
-      label: 'Coastal Segments', 
-      icon: '🌊', 
-      color: '#22c55e',
-      category: 'ocean',
-      toggle: (enabled: boolean) => toggleOceanHealthLayer('coastalSegments', enabled)
-    },
-    { 
-      id: 'pollutionPlumes' as const, 
-      label: 'Pollution Plumes', 
-      icon: '🚨', 
-      color: '#dc2626',
-      category: 'ocean',
-      toggle: (enabled: boolean) => toggleOceanHealthLayer('pollutionPlumes', enabled)
-    },
-    { 
-      id: 'waterQuality' as const, 
-      label: 'Water Quality', 
-      icon: '💧', 
-      color: '#3b82f6',
-      category: 'ocean',
-      toggle: (enabled: boolean) => toggleOceanHealthLayer('waterQuality', enabled)
-    },
-    { 
-      id: 'reefHealth' as const, 
-      label: 'Reef Health', 
-      icon: '🪸', 
-      color: '#10b981',
-      category: 'ocean',
-      toggle: (enabled: boolean) => toggleOceanHealthLayer('reefHealth', enabled)
-    },
-    // Global Layers
-    { 
-      id: 'elevationTerrain' as const, 
-      label: 'Elevation/Terrain', 
-      icon: '⛰️', 
-      color: '#8b5cf6',
-      category: 'global',
-      toggle: (enabled: boolean) => toggleElevationTerrain(enabled)
-    },
   ];
   
   const getLayerChecked = (layer: typeof layerConfig[0]) => {
     if (layer.category === 'flood') {
       return layers.flood[layer.id as keyof typeof layers.flood] || false;
-    } else if (layer.category === 'cyclone') {
-      return layers.cyclone[layer.id as keyof typeof layers.cyclone] || false;
     } else if (layer.category === 'ocean') {
       return layers.oceanHealth[layer.id as keyof typeof layers.oceanHealth] || false;
-    } else if (layer.id === 'elevationTerrain') {
-      return layers.elevationTerrain;
     }
     return false;
   };

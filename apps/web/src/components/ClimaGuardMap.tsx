@@ -7,6 +7,7 @@ import {
   CycloneDataMap,
   FishingActivityDataMap,
 } from '@/components/map/DataMapComponents';
+import OverviewMap from '@/components/OverviewMap';
 
 type MapType = 'ocean-health' | 'pollution' | 'flood' | 'cyclone' | 'fishing' | 'overview';
 
@@ -33,7 +34,7 @@ export default function ClimaGuardMap({
     'flood': <FloodDataMap lat={lat} lng={lng} />,
     'cyclone': <CycloneDataMap lat={lat} lng={lng} />,
     'fishing': <FishingActivityDataMap lat={lat} lng={lng} />,
-    'overview': <OceanHealthDataMap lat={lat} lng={lng} />, // Default to ocean health for overview
+    'overview': <OverviewMap lat={lat} lng={lng} />, // Combined overview with coral reef and flood data
   };
 
   return (
