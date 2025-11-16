@@ -85,6 +85,10 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
       }
 
       const data = await response.json();
+      
+      // Add 500ms delay before showing the response
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const assistantMessage: Message = {
         role: 'assistant',
         content: data.reply,
