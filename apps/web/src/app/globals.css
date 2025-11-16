@@ -448,6 +448,9 @@ textarea:focus-visible {
   right: 1rem;
   left: auto;
   transform: none;
+  width: 360px;
+  max-width: 90vw;
+  max-height: 60vh;
 }
 
 /* Mobile: centered */
@@ -457,6 +460,9 @@ textarea:focus-visible {
     left: 50%;
     right: auto;
     transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 360px;
+    max-height: 70vh;
   }
 }
 
@@ -576,13 +582,69 @@ textarea:focus-visible {
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+  scroll-behavior: smooth;  /* Smooth scrolling */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
 
-/* Smooth scrolling for horizontal scroll */
-.scrollbar-hide {
-  scroll-behavior: smooth;
+/* Color-blind filter application */
+/* SVG filters for color-blind simulation */
+svg.color-blind-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}
+
+/* Protanopia (Red-blind) filter */
+[data-color-blind="protanopia"] {
+  filter: url('#protanopia-filter');
+}
+
+/* Deuteranopia (Green-blind) filter */
+[data-color-blind="deuteranopia"] {
+  filter: url('#deuteranopia-filter');
+}
+
+/* Tritanopia (Blue-blind) filter */
+[data-color-blind="tritanopia"] {
+  filter: url('#tritanopia-filter');
+}
+
+/* ============================================
+   Voice Recording Animations
+   ============================================ */
+
+/* Pulsing animation for recording button */
+@keyframes voice-recording-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.voice-recording-pulse {
+  animation: voice-recording-pulse 1.5s ease-in-out infinite;
+}
+
+/* Icon pulse animation */
+@keyframes voice-icon-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.voice-icon-pulse {
+  animation: voice-icon-pulse 1s ease-in-out infinite;
 }
