@@ -129,15 +129,26 @@ export function createMapboxMap(
   // Add navigation controls
   map.addControl(new Mapbox.NavigationControl(), 'top-right');
 
-  // Set bounds if provided (always use Mauritius bounds for consistency)
+  // Always use Mauritius bounds for consistency (WGS84/EPSG:4326)
+  // Mapbox automatically handles projection to EPSG:3857 (Web Mercator)
   if (bounds) {
     map.fitBounds(bounds, { padding: 20, maxZoom: 15 });
   } else {
     // Default to Mauritius bounds if not specified
     map.fitBounds(MAURITIUS_BOUNDS, { padding: 20, maxZoom: 15 });
   }
+  
+  // Ensure map uses WGS84 coordinates (Mapbox default)
+  // All coordinates passed to Mapbox should be [lng, lat] in WGS84
 
-  // Force resize after initial setup
+  // Force resize after initial setup and on load
+  map.on('load', () => {
+    setTimeout(() => {
+      map.resize();
+    }, 100);
+  });
+
+  // Also resize immediately
   setTimeout(() => {
     map.resize();
   }, 100);
@@ -169,6 +180,41 @@ export function addMapboxMarker(
   
   const { color = '#3b82f6', size = 22, element } = options;
 
+  // Ensure map is loaded and has a container
+  const mapContainer = map.getContainer();
+  if (!map.loaded() || !mapContainer) {
+    // Wait for map to be ready - use a flag to prevent duplicate calls
+    const markerKey = `_marker_pending_${coords[0]}_${coords[1]}_${color}`;
+    if ((map as any)[markerKey]) {
+      // Already waiting for this marker
+      const dummyEl = document.createElement('div');
+      return new Mapbox.Marker({ element: dummyEl }).setLngLat(coords);
+    }
+    (map as any)[markerKey] = true;
+    
+    const addMarker = () => {
+      if (map.loaded() && map.getContainer()) {
+        delete (map as any)[markerKey];
+        addMapboxMarker(map, coords, options, popupContent);
+      }
+    };
+    
+    if (!map.loaded()) {
+      map.once('load', addMarker);
+    }
+    // Also try after a short delay
+    setTimeout(() => {
+      if (map.loaded() && map.getContainer()) {
+        delete (map as any)[markerKey];
+        addMarker();
+      }
+    }, 100);
+    
+    // Return a dummy marker for now (will be replaced when map is ready)
+    const dummyEl = document.createElement('div');
+    return new Mapbox.Marker({ element: dummyEl }).setLngLat(coords);
+  }
+
   // Create marker element if not provided
   const markerElement = element || (() => {
     const el = document.createElement('div');
@@ -190,7 +236,14 @@ export function addMapboxMarker(
 
   // Add popup if provided
   if (popupContent) {
-    const popup = new Mapbox.Popup({ offset: 24 });
+    const popup = new Mapbox.Popup({ 
+      offset: 24,
+      closeOnClick: false,
+      closeButton: true,
+      closeOnMove: false,
+      autoClose: false,
+      anchor: 'bottom',
+    });
     if (typeof popupContent === 'string') {
       popup.setHTML(popupContent);
     } else {
@@ -199,10 +252,34 @@ export function addMapboxMarker(
     marker.setPopup(popup);
   }
 
-  // Prevent event bubbling to prevent cards from hiding
+  // Handle marker click to open popup
   markerElement.addEventListener('click', (e) => {
     e.stopPropagation();
-    e.preventDefault();
+    if (popupContent) {
+      const popup = marker.getPopup();
+      if (popup) {
+        // Toggle popup on click
+        if (popup.isOpen()) {
+          popup.remove();
+        } else {
+          marker.togglePopup();
+        }
+      }
+    }
+  });
+
+  // Also handle marker click event (Mapbox's own click handler)
+  marker.on('click', (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+    }
+    // Mapbox will automatically toggle the popup if one is set
+    if (popupContent) {
+      const popup = marker.getPopup();
+      if (popup && !popup.isOpen()) {
+        marker.togglePopup();
+      }
+    }
   });
 
   return marker;
@@ -263,6 +340,14 @@ export function addMapboxRoute(
     },
   });
 
+  // Prevent event bubbling for route clicks
+  map.on('click', layerId, (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
+    }
+  });
+
   return layerId;
 }
 
@@ -293,53 +378,132 @@ export function addMapboxPolygon(
     layerId = `polygon-${Date.now()}`,
   } = options;
 
+  // Ensure map is loaded
+  if (!map.loaded() || !map.isStyleLoaded()) {
+    // Wait for map to be fully loaded - use a flag to prevent multiple calls
+    const mapKey = `_polygon_${layerId}_pending`;
+    if ((map as any)[mapKey]) {
+      // Already waiting for this polygon
+      return layerId;
+    }
+    (map as any)[mapKey] = true;
+    
+    const addPolygon = () => {
+      if (map.loaded() && map.isStyleLoaded()) {
+        delete (map as any)[mapKey];
+        addMapboxPolygon(map, coordinates, options);
+      }
+    };
+    
+    // Set up listeners
+    if (!map.loaded()) {
+      map.once('load', addPolygon);
+    }
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', addPolygon);
+    }
+    // Also check after a short delay in case it loads between checks
+    setTimeout(() => {
+      if (map.loaded() && map.isStyleLoaded()) {
+        delete (map as any)[mapKey];
+        addMapboxPolygon(map, coordinates, options);
+      }
+    }, 100);
+    return layerId;
+  }
+
   // Remove existing layer/source if present
-  if (map.getLayer(layerId)) map.removeLayer(layerId);
-  if (map.getSource(layerId)) map.removeSource(layerId);
+  try {
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(layerId)) map.removeSource(layerId);
+  } catch (e) {
+    // Ignore errors when removing non-existent layers
+  }
 
   // Normalize coordinates format
   const coords = Array.isArray(coordinates[0][0])
     ? coordinates as [number, number][][]
     : [coordinates as [number, number][]];
 
-  // Add source
-  map.addSource(layerId, {
-    type: 'geojson',
-    data: {
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: coords,
+  // Ensure polygon is closed (first and last point must be the same)
+  coords.forEach((ring) => {
+    if (ring.length > 0) {
+      const first = ring[0];
+      const last = ring[ring.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) {
+        ring.push([first[0], first[1]]);
+      }
+    }
+  });
+
+  // Validate coordinates
+  if (coords.length === 0 || coords[0].length < 4) {
+    console.error('Invalid polygon coordinates:', coords);
+    return layerId;
+  }
+
+  try {
+    // Add source
+    map.addSource(layerId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: coords,
+        },
+        properties: {},
       },
-      properties: {},
-    },
-  });
+    });
+  } catch (e) {
+    console.error('Error adding polygon source:', e, { layerId, coords });
+    return layerId;
+  }
 
-  // Add fill layer
-  map.addLayer({
-    id: layerId,
-    type: 'fill',
-    source: layerId,
-    paint: {
-      'fill-color': color,
-      'fill-opacity': fillOpacity,
-    },
-  });
+  try {
+    // Add fill layer
+    map.addLayer({
+      id: layerId,
+      type: 'fill',
+      source: layerId,
+      paint: {
+        'fill-color': color,
+        'fill-opacity': fillOpacity,
+      },
+    });
 
-  // Add stroke layer
-  map.addLayer({
-    id: `${layerId}-stroke`,
-    type: 'line',
-    source: layerId,
-    paint: {
-      'line-color': strokeColor,
-      'line-width': strokeWidth,
-      'line-opacity': 0.8,
-    },
-  });
+    // Add stroke layer
+    map.addLayer({
+      id: `${layerId}-stroke`,
+      type: 'line',
+      source: layerId,
+      paint: {
+        'line-color': strokeColor,
+        'line-width': strokeWidth,
+        'line-opacity': 0.8,
+      },
+    });
+  } catch (e) {
+    console.error('Error adding polygon layers:', e, { layerId });
+    // Try to remove source if layer addition failed
+    try {
+      if (map.getSource(layerId)) map.removeSource(layerId);
+    } catch (removeError) {
+      // Ignore removal errors
+    }
+    return layerId;
+  }
 
-  // Prevent event bubbling
+  // Prevent event bubbling for polygon clicks
   map.on('click', layerId, (e) => {
+    if (e.originalEvent) {
+      e.originalEvent.stopPropagation();
+      e.originalEvent.preventDefault();
+    }
+  });
+
+  // Also prevent on stroke layer
+  map.on('click', `${layerId}-stroke`, (e) => {
     if (e.originalEvent) {
       e.originalEvent.stopPropagation();
       e.originalEvent.preventDefault();
@@ -408,5 +572,447 @@ export function getMapboxCenter(map: MapboxMap): [number, number] {
  */
 export function getMapboxZoom(map: MapboxMap): number {
   return map.getZoom();
+}
+
+/**
+ * Layer Management System
+ * Tracks and controls map layers for visibility toggling
+ */
+
+// Global layer registry per map instance
+const layerRegistry = new WeakMap<MapboxMap, Map<string, { layerId: string; visible: boolean }>>();
+
+/**
+ * Register a layer with the map engine
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Unique layer identifier
+ * @param layerId - Actual Mapbox layer ID
+ */
+export function registerMapboxLayer(
+  map: MapboxMap,
+  id: string,
+  layerId: string
+): void {
+  if (!layerRegistry.has(map)) {
+    layerRegistry.set(map, new Map());
+  }
+  const registry = layerRegistry.get(map)!;
+  registry.set(id, { layerId, visible: true });
+}
+
+/**
+ * Show a registered layer
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Layer identifier
+ */
+export function showMapboxLayer(
+  map: MapboxMap,
+  id: string
+): void {
+  const registry = layerRegistry.get(map);
+  if (!registry) return;
+  
+  const layer = registry.get(id);
+  if (!layer) return;
+  
+  const mapLayer = map.getLayer(layer.layerId);
+  if (mapLayer) {
+    map.setLayoutProperty(layer.layerId, 'visibility', 'visible');
+    registry.set(id, { ...layer, visible: true });
+  }
+}
+
+/**
+ * Hide a registered layer
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Layer identifier
+ */
+export function hideMapboxLayer(
+  map: MapboxMap,
+  id: string
+): void {
+  const registry = layerRegistry.get(map);
+  if (!registry) return;
+  
+  const layer = registry.get(id);
+  if (!layer) return;
+  
+  const mapLayer = map.getLayer(layer.layerId);
+  if (mapLayer) {
+    map.setLayoutProperty(layer.layerId, 'visibility', 'none');
+    registry.set(id, { ...layer, visible: false });
+  }
+}
+
+/**
+ * Toggle a registered layer visibility
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Layer identifier
+ * @returns New visibility state
+ */
+export function toggleMapboxLayer(
+  map: MapboxMap,
+  id: string
+): boolean {
+  const registry = layerRegistry.get(map);
+  if (!registry) return false;
+  
+  const layer = registry.get(id);
+  if (!layer) return false;
+  
+  const newVisibility = !layer.visible;
+  if (newVisibility) {
+    showMapboxLayer(map, id);
+  } else {
+    hideMapboxLayer(map, id);
+  }
+  
+  return newVisibility;
+}
+
+/**
+ * Check if a layer is visible
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Layer identifier
+ * @returns Visibility state
+ */
+export function isMapboxLayerVisible(
+  map: MapboxMap,
+  id: string
+): boolean {
+  const registry = layerRegistry.get(map);
+  if (!registry) return false;
+  
+  const layer = registry.get(id);
+  if (!layer) return false;
+  
+  return layer.visible;
+}
+
+/**
+ * Unregister a layer
+ * 
+ * @param map - Mapbox map instance
+ * @param id - Layer identifier
+ */
+export function unregisterMapboxLayer(
+  map: MapboxMap,
+  id: string
+): void {
+  const registry = layerRegistry.get(map);
+  if (!registry) return;
+  
+  registry.delete(id);
+}
+
+/**
+ * Add a heatmap layer to the map
+ * Uses circle layers with varying opacity and radius to simulate heatmap
+ * 
+ * @param map - Mapbox map instance
+ * @param points - Array of [lng, lat, intensity] points (intensity 0-1)
+ * @param options - Heatmap configuration options
+ * @returns Heatmap layer ID
+ */
+export function addMapboxHeatmap(
+  map: MapboxMap,
+  points: [number, number, number][],
+  options: {
+    radius?: number;
+    maxIntensity?: number;
+    minOpacity?: number;
+    maxOpacity?: number;
+    colorStops?: Array<[number, string]>;
+    layerId?: string;
+  } = {}
+): string {
+  const {
+    radius = 25,
+    maxIntensity = 1.0,
+    minOpacity = 0.1,
+    maxOpacity = 0.8,
+    colorStops = [
+      [0, 'blue'],
+      [0.3, 'cyan'],
+      [0.5, 'yellow'],
+      [0.7, 'orange'],
+      [1.0, 'red'],
+    ],
+    layerId = `heatmap-${Date.now()}`,
+  } = options;
+
+  // Remove existing layer/source if present
+  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  if (map.getSource(layerId)) map.removeSource(layerId);
+
+  // Normalize intensities
+  const normalizedPoints = points.map(([lng, lat, intensity]) => [
+    lng,
+    lat,
+    Math.min(intensity / maxIntensity, 1.0),
+  ] as [number, number, number]);
+
+  // Create GeoJSON source with points
+  map.addSource(layerId, {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: normalizedPoints.map(([lng, lat, intensity]) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat],
+        },
+        properties: {
+          intensity,
+        },
+      })),
+    },
+  });
+
+  // Add circle layer for heatmap effect
+  map.addLayer({
+    id: layerId,
+    type: 'circle',
+    source: layerId,
+    paint: {
+      'circle-radius': [
+        'interpolate',
+        ['linear'],
+        ['get', 'intensity'],
+        0,
+        radius * 0.5,
+        1,
+        radius * 2,
+      ],
+      'circle-color': [
+        'interpolate',
+        ['linear'],
+        ['get', 'intensity'],
+        ...colorStops.flat(),
+      ],
+      'circle-opacity': [
+        'interpolate',
+        ['linear'],
+        ['get', 'intensity'],
+        0,
+        minOpacity,
+        1,
+        maxOpacity,
+      ],
+      'circle-blur': [
+        'interpolate',
+        ['linear'],
+        ['get', 'intensity'],
+        0,
+        0.5,
+        1,
+        1.5,
+      ],
+    },
+  });
+
+  return layerId;
+}
+
+/**
+ * Add wind-radius rings to the map
+ * 
+ * @param map - Mapbox map instance
+ * @param center - [lng, lat] center point
+ * @param radii - Array of {speed: number, radius: number} in km
+ * @param options - Ring style options
+ * @returns Array of layer IDs
+ */
+export function addMapboxWindRings(
+  map: MapboxMap,
+  center: [number, number],
+  radii: Array<{ speed: number; radius: number }>,
+  options: {
+    layerIdPrefix?: string;
+  } = {}
+): string[] {
+  const { layerIdPrefix = 'wind-ring' } = options;
+  const layerIds: string[] = [];
+
+  radii.forEach(({ speed, radius }, index) => {
+    const layerId = `${layerIdPrefix}-${speed}kt-${index}`;
+    
+    // Remove existing layer/source if present
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(layerId)) map.removeSource(layerId);
+
+    // Create circle polygon (approximate with many points)
+    const points: [number, number][] = [];
+    const numPoints = 64;
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * 2 * Math.PI;
+      // Convert km to degrees (approximate: 1 degree ≈ 111 km)
+      const latOffset = (radius / 111) * Math.cos(angle);
+      const lngOffset = (radius / 111) * Math.sin(angle) / Math.cos(center[1] * Math.PI / 180);
+      points.push([center[0] + lngOffset, center[1] + latOffset]);
+    }
+    points.push(points[0]); // Close the polygon
+
+    // Add source
+    map.addSource(layerId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [points],
+        },
+        properties: {
+          speed,
+          radius,
+        },
+      },
+    });
+
+    // Add fill layer
+    map.addLayer({
+      id: layerId,
+      type: 'fill',
+      source: layerId,
+      paint: {
+        'fill-color': speed >= 64 ? '#dc2626' : speed >= 50 ? '#ea580c' : '#eab308',
+        'fill-opacity': 0.15,
+      },
+    });
+
+    // Add stroke layer
+    map.addLayer({
+      id: `${layerId}-stroke`,
+      type: 'line',
+      source: layerId,
+      paint: {
+        'line-color': speed >= 64 ? '#dc2626' : speed >= 50 ? '#ea580c' : '#eab308',
+        'line-width': 2,
+        'line-opacity': 0.8,
+        'line-dasharray': [2, 2],
+      },
+    });
+
+    layerIds.push(layerId);
+  });
+
+  return layerIds;
+}
+
+/**
+ * Add cone of uncertainty polygon
+ * 
+ * @param map - Mapbox map instance
+ * @param trackPoints - Array of [lng, lat] points along the track
+ * @param widthAtPoints - Array of widths (in km) at each track point
+ * @param options - Cone style options
+ * @returns Cone layer ID
+ */
+export function addMapboxConeOfUncertainty(
+  map: MapboxMap,
+  trackPoints: [number, number][],
+  widthAtPoints: number[],
+  options: {
+    color?: string;
+    opacity?: number;
+    layerId?: string;
+  } = {}
+): string {
+  const {
+    color = '#FF3B30',
+    opacity = 0.2,
+    layerId = `cone-uncertainty-${Date.now()}`,
+  } = options;
+
+  // Remove existing layer/source if present
+  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  if (map.getSource(layerId)) map.removeSource(layerId);
+
+  if (trackPoints.length < 2 || trackPoints.length !== widthAtPoints.length) {
+    console.warn('Invalid cone of uncertainty data');
+    return layerId;
+  }
+
+  // Build polygon by creating perpendicular points at each track point
+  const leftPoints: [number, number][] = [];
+  const rightPoints: [number, number][] = [];
+
+  for (let i = 0; i < trackPoints.length; i++) {
+    const [lng, lat] = trackPoints[i];
+    const width = widthAtPoints[i];
+
+    // Calculate bearing (direction of track)
+    let bearing = 0;
+    if (i < trackPoints.length - 1) {
+      const [nextLng, nextLat] = trackPoints[i + 1];
+      const dLng = (nextLng - lng) * Math.PI / 180;
+      const dLat = (nextLat - lat) * Math.PI / 180;
+      bearing = Math.atan2(dLng, dLat);
+    } else if (i > 0) {
+      const [prevLng, prevLat] = trackPoints[i - 1];
+      const dLng = (lng - prevLng) * Math.PI / 180;
+      const dLat = (lat - prevLat) * Math.PI / 180;
+      bearing = Math.atan2(dLng, dLat);
+    }
+
+    // Perpendicular angle
+    const perpAngle = bearing + Math.PI / 2;
+
+    // Convert width (km) to degrees
+    const widthDeg = width / 111;
+    const lngOffset = widthDeg * Math.sin(perpAngle) / Math.cos(lat * Math.PI / 180);
+    const latOffset = widthDeg * Math.cos(perpAngle);
+
+    leftPoints.push([lng - lngOffset, lat - latOffset]);
+    rightPoints.unshift([lng + lngOffset, lat + latOffset]);
+  }
+
+  // Combine points to form polygon
+  const polygonPoints = [...leftPoints, ...rightPoints, leftPoints[0]];
+
+  // Add source
+  map.addSource(layerId, {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [polygonPoints],
+      },
+      properties: {},
+    },
+  });
+
+  // Add fill layer
+  map.addLayer({
+    id: layerId,
+    type: 'fill',
+    source: layerId,
+    paint: {
+      'fill-color': color,
+      'fill-opacity': opacity,
+    },
+  });
+
+  // Add stroke layer
+  map.addLayer({
+    id: `${layerId}-stroke`,
+    type: 'line',
+    source: layerId,
+    paint: {
+      'line-color': color,
+      'line-width': 2,
+      'line-opacity': 0.6,
+      'line-dasharray': [4, 2],
+    },
+  });
+
+  return layerId;
 }
 

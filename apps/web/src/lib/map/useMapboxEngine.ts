@@ -62,6 +62,13 @@ export function useMapboxEngine(options: UseMapboxEngineOptions) {
           map.resize();
         }, 100);
 
+        // Also resize on load
+        map.on('load', () => {
+          setTimeout(() => {
+            map.resize();
+          }, 100);
+        });
+
       } catch (err) {
         console.error('Failed to create map:', err);
         setError(err instanceof Error ? err : new Error('Failed to create map'));
@@ -93,9 +100,12 @@ export function useMapboxEngine(options: UseMapboxEngineOptions) {
 
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current) {
-        setTimeout(() => {
-          mapRef.current?.resize();
-        }, 100);
+        // Use requestAnimationFrame for smoother resizing
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            mapRef.current?.resize();
+          }, 50);
+        });
       }
     });
 

@@ -43,6 +43,16 @@ export default function BaseMapboxMap({
     center,
     zoom,
     onMapReady: (mapInstance) => {
+      if (mapInstance) {
+        // Ensure map resizes after being ready
+        setTimeout(() => {
+          mapInstance.resize();
+        }, 100);
+        // Also resize after a short delay to handle any layout shifts
+        setTimeout(() => {
+          mapInstance.resize();
+        }, 500);
+      }
       if (onMapReady) {
         onMapReady(mapInstance);
       }

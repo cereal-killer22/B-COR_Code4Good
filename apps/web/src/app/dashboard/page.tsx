@@ -14,6 +14,7 @@ import AcidificationTracker from '@/components/AcidificationTracker';
 import FloodLayerToggles from '@/components/map/FloodLayerToggles';
 import CycloneLayerToggles from '@/components/map/CycloneLayerToggles';
 import OceanHealthLayerToggles from '@/components/map/OceanHealthLayerToggles';
+import OverviewToggle from '@/components/map/OverviewToggle';
 import { Card, StatusBadge, MetricCard, Button, PageHeader, SectionHeader } from '@/components/ui';
 import { useAutoRead } from '@/hooks/useAutoRead';
 import { useTextToSpeech } from '@/contexts/TextToSpeechContext';
@@ -420,8 +421,13 @@ export default function Dashboard() {
                     }
                     className="mb-6"
                   />
-                  <div className="rounded-lg overflow-hidden border border-gray-200">
-                    <ClimaGuardMap />
+                  <div className="relative">
+                    <div className="rounded-lg overflow-hidden border border-gray-200 h-[650px] min-h-[650px] md:h-[75vh]">
+                      <ClimaGuardMap />
+                    </div>
+                    <div className="absolute top-4 right-4 z-[1000]">
+                      <OverviewToggle />
+                    </div>
                   </div>
                 </Card>
               </div>
@@ -697,7 +703,12 @@ export default function Dashboard() {
                 className="mb-6"
               />
               <div className="h-[650px] min-h-[650px] md:h-[75vh] rounded-lg border overflow-hidden">
-                <ClimaGuardMap type="cyclone" />
+                <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
+                  <ClimaGuardMap type="cyclone" />
+                  <div className="absolute top-4 right-4 z-[1000]">
+                    <CycloneLayerToggles />
+                  </div>
+                </div>
               </div>
               
               {/* Map Legend */}
@@ -775,11 +786,17 @@ export default function Dashboard() {
                 subtitle="AI-powered flood detection and prediction using satellite imagery"
                 className="mb-6"
               />
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <div className="rounded-lg overflow-hidden border border-gray-200">
-                  <ClimaGuardMap />
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Map Section - Left side on desktop */}
+                <div className="flex-1 relative h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-200">
+                  <ClimaGuardMap type="flood" />
+                  <div className="absolute top-4 right-4 z-[1000]">
+                    <FloodLayerToggles />
+                  </div>
                 </div>
-                <div className="space-y-6">
+                
+                {/* Info Card Section - Right side on desktop, below on mobile */}
+                <div className="w-full md:w-80 lg:w-96 space-y-6 overflow-y-auto max-h-[650px] md:max-h-[75vh]">
                   <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-xl border border-blue-200">
                     <h3 className="font-semibold text-blue-800 mb-3">🧠 CNN/UNet Architecture</h3>
                     <p className="text-sm text-blue-700 leading-relaxed">
@@ -833,11 +850,17 @@ export default function Dashboard() {
                 subtitle="AI-powered marine ecosystem monitoring and protection (SDG 14)"
                 className="mb-6"
               />
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <div className="rounded-lg overflow-hidden border border-gray-200">
-                  <ClimaGuardMap />
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Map Section - Left side on desktop */}
+                <div className="flex-1 relative h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-200">
+                  <ClimaGuardMap type="ocean-health" />
+                  <div className="absolute top-4 right-4 z-[1000]">
+                    <OceanHealthLayerToggles />
+                  </div>
                 </div>
-                <div className="space-y-6">
+                
+                {/* Info Card Section - Right side on desktop, below on mobile */}
+                <div className="w-full md:w-80 lg:w-96 space-y-6 overflow-y-auto max-h-[650px] md:max-h-[75vh]">
                   <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-xl border border-blue-200">
                     <h3 className="font-semibold text-blue-800 mb-3">🧠 AI-Powered Monitoring</h3>
                     <p className="text-sm text-blue-700 leading-relaxed">
@@ -878,12 +901,8 @@ export default function Dashboard() {
                 subtitle="Comprehensive marine ecosystem protection tools"
                 className="mb-6"
               />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <ClimaGuardMap />
-                </div>
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h3 className="font-semibold text-blue-800 mb-2">🌊 Ocean Health Monitoring</h3>
                     <p className="text-sm text-blue-700 mb-3">
                       Real-time water quality metrics, pollution indices, and overall ocean health scoring 
@@ -931,7 +950,6 @@ export default function Dashboard() {
                       </Button>
                     </Link>
                   </div>
-                </div>
               </div>
             </Card>
 
@@ -942,7 +960,7 @@ export default function Dashboard() {
                 subtitle="Performance metrics for ocean protection"
                 className="mb-4"
               />
-              <div className="relative">
+              <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
                 <OceanHealthDataMap lat={-20.2} lng={57.5} />
                 <div className="absolute top-4 right-4 z-[1000]">
                   <OceanHealthLayerToggles />

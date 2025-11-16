@@ -6,7 +6,34 @@
  * reusing a single generic map component.
  */
 
-// Core engine functions
+// Mapbox Engine exports (primary)
+export {
+  createMapboxMap,
+  addMapboxMarker,
+  addMapboxRoute,
+  addMapboxPolygon,
+  addMapboxHeatmap,
+  addMapboxWindRings,
+  addMapboxConeOfUncertainty,
+  clearMapboxLayers,
+  fitMapboxBounds,
+  getMapboxCenter,
+  getMapboxZoom,
+  registerMapboxLayer,
+  showMapboxLayer,
+  hideMapboxLayer,
+  toggleMapboxLayer,
+  isMapboxLayerVisible,
+  unregisterMapboxLayer,
+} from './MapboxEngine';
+
+export type { MapboxEngineOptions } from './MapboxEngine';
+
+// React hooks
+export { useMapboxEngine } from './useMapboxEngine';
+export type { UseMapboxEngineOptions } from './useMapboxEngine';
+
+// Legacy Leaflet exports (for backward compatibility)
 export {
   createBaseMap,
   loadGeoJSONLayer,
@@ -25,6 +52,13 @@ export {
   MAURITIUS_BOUNDS,
   DEFAULT_TILE_URL,
   DEFAULT_TILE_ATTRIBUTION,
+  createLayerGroup,
+  registerLayer,
+  showLayer,
+  hideLayer,
+  toggleLayer,
+  isLayerVisible,
+  unregisterLayer,
 } from './MapEngine';
 
 // Type exports
@@ -50,17 +84,6 @@ export {
   CYCLONE_FORMATION_MAP_CONFIG,
 } from './MapConfigs';
 
-// React hooks
+// React hooks (legacy)
 export { useMapEngine } from './useMapEngine';
-
-// Layer management
-export {
-  createLayerGroup,
-  registerLayer,
-  showLayer,
-  hideLayer,
-  toggleLayer,
-  isLayerVisible,
-  unregisterLayer,
-} from './MapEngine';
 
