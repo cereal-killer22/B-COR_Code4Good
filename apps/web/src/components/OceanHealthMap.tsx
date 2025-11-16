@@ -9,10 +9,32 @@ import {
 } from '@/lib/map/MapboxEngine';
 import { useLayerToggle } from '@/contexts/LayerToggleContext';
 import type { Map as MapboxMap, Marker } from 'mapbox-gl';
+import mapboxgl from 'mapbox-gl';
 
 interface OceanHealthMapProps {
   lat?: number;
   lng?: number;
+  showCoralReefs?: boolean;
+}
+
+interface CoralReefPoint {
+  id: number;
+  reef_id: string;
+  location_lat: number;
+  location_lng: number;
+  reef_name: string;
+  reef_zone: string;
+  depth_meters: number;
+  health_status: string;
+  coral_cover_percentage: number;
+  bleaching_severity: string;
+  water_temperature_celsius: number;
+  ph_level: number;
+  fish_abundance: string;
+  pollution_level: string;
+  threats: string[];
+  last_survey_date: string;
+  confidence_score: number;
 }
 
 interface RegionData {
@@ -42,15 +64,17 @@ interface RegionData {
   };
 }
 
-export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthMapProps) {
+export default function OceanHealthMap({ lat = -20.2, lng = 57.5, showCoralReefs = true }: OceanHealthMapProps) {
   const [prediction, setPrediction] = useState<any>(null);
   const [regions, setRegions] = useState<Record<string, RegionData>>({});
+  const [coralReefs, setCoralReefs] = useState<CoralReefPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
   const regionMarkersRef = useRef<Marker[]>([]);
   const regionLayersRef = useRef<string[]>([]);
+  const coralReefLayerAdded = useRef(false);
   const containerId = useMemo(() => `ocean-health-map-${Math.random().toString(36).substr(2, 9)}`, []);
   const { layers } = useLayerToggle();
 
@@ -81,6 +105,30 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
     const interval = setInterval(fetchPrediction, 3600000); // 1 hour
     return () => clearInterval(interval);
   }, [lat, lng]);
+
+  // Fetch coral reef health data from Supabase
+  useEffect(() => {
+    if (!showCoralReefs) return;
+
+    const fetchCoralReefs = async () => {
+      try {
+        const response = await fetch('/api/coral-reef-health');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setCoralReefs(result.data);
+            console.log(`Loaded ${result.data.length} coral reef points`);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching coral reef data:', err);
+      }
+    };
+
+    fetchCoralReefs();
+    const interval = setInterval(fetchCoralReefs, 1800000); // Update every 30 minutes
+    return () => clearInterval(interval);
+  }, [showCoralReefs]);
 
   const getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {
@@ -421,10 +469,174 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
     if (Object.keys(regions).length > 0) {
       updateRegionalLayers(map);
     }
+    
+    // Add coral reef layer if data is available
+    if (showCoralReefs && coralReefs.length > 0) {
+      addCoralReefLayer(map, coralReefs);
+    }
 
     setTimeout(() => {
       map.resize();
     }, 100);
+  };
+
+  const addCoralReefLayer = (map: MapboxMap, reefs: CoralReefPoint[]) => {
+    if (coralReefLayerAdded.current || !map || !map.loaded() || reefs.length === 0) return;
+
+    // Create GeoJSON from coral reef points
+    const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
+      type: 'FeatureCollection',
+      features: reefs.map(reef => ({
+        type: 'Feature',
+        properties: {
+          reef_name: reef.reef_name,
+          health_status: reef.health_status,
+          coral_cover: reef.coral_cover_percentage,
+          bleaching: reef.bleaching_severity,
+          temperature: reef.water_temperature_celsius,
+          ph: reef.ph_level,
+          pollution: reef.pollution_level,
+          fish_abundance: reef.fish_abundance,
+          depth: reef.depth_meters,
+          zone: reef.reef_zone,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [reef.location_lng, reef.location_lat]
+        }
+      }))
+    };
+
+    try {
+      // Add source
+      if (!map.getSource('coral-reefs')) {
+        map.addSource('coral-reefs', {
+          type: 'geojson',
+          data: geojson
+        });
+      }
+
+      // Add circle layer for coral reef points
+      if (!map.getLayer('coral-reef-points')) {
+        map.addLayer({
+          id: 'coral-reef-points',
+          type: 'circle',
+          source: 'coral-reefs',
+          paint: {
+            // Color by health status
+            'circle-color': [
+              'match',
+              ['get', 'health_status'],
+              'excellent', '#10b981', // green
+              'good', '#22c55e',      // light green
+              'fair', '#eab308',       // yellow
+              'poor', '#ea580c',       // orange
+              'critical', '#dc2626',    // red
+              '#6b7280'                 // default gray
+            ],
+            'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              8, 4,
+              12, 8,
+              15, 12
+            ],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+            'circle-opacity': 0.85
+          }
+        });
+
+        // Add click handler for popups
+        map.on('click', 'coral-reef-points', (e) => {
+          if (!e.features || e.features.length === 0) return;
+
+          const feature = e.features[0];
+          const props = feature.properties;
+          if (!props) return;
+
+          const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
+          
+          const getHealthColor = (status: string) => {
+            switch (status) {
+              case 'excellent': return '#10b981';
+              case 'good': return '#22c55e';
+              case 'fair': return '#eab308';
+              case 'poor': return '#ea580c';
+              case 'critical': return '#dc2626';
+              default: return '#6b7280';
+            }
+          };
+
+          const popupHTML = `
+            <div style="width:300px;font-family:'Figtree',sans-serif;background:#fff;border-radius:8px;padding:14px;">
+              <h3 style="margin:0 0 12px;font-size:16px;font-weight:600;color:#222;">🪸 ${props.reef_name || 'Coral Reef'}</h3>
+              <div style="font-size:13px;line-height:1.7;">
+                <div style="margin-bottom:8px;padding:8px;background:#f3f4f6;border-radius:6px;">
+                  <div style="margin-bottom:4px;">
+                    <span style="font-weight:600;">Health Status:</span>
+                    <span style="text-transform:uppercase;color:${getHealthColor(props.health_status)};font-weight:600;margin-left:6px;">
+                      ${props.health_status}
+                    </span>
+                  </div>
+                  <div style="margin-bottom:4px;">
+                    <span style="font-weight:600;">Coral Coverage:</span>
+                    <span style="margin-left:6px;">${props.coral_cover}%</span>
+                  </div>
+                  <div>
+                    <span style="font-weight:600;">Bleaching:</span>
+                    <span style="margin-left:6px;text-transform:capitalize;">${props.bleaching || 'N/A'}</span>
+                  </div>
+                </div>
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:600;">🌡️ Temperature:</span>
+                  <span style="margin-left:6px;">${props.temperature?.toFixed(1) || 'N/A'}°C</span>
+                </div>
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:600;">🐠 Fish Abundance:</span>
+                  <span style="margin-left:6px;text-transform:capitalize;">${props.fish_abundance?.replace('_', ' ') || 'N/A'}</span>
+                </div>
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:600;">💧 pH Level:</span>
+                  <span style="margin-left:6px;">${props.ph?.toFixed(2) || 'N/A'}</span>
+                </div>
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:600;">🏭 Pollution:</span>
+                  <span style="margin-left:6px;text-transform:capitalize;">${props.pollution || 'N/A'}</span>
+                </div>
+                <div style="margin-bottom:6px;">
+                  <span style="font-weight:600;">📏 Depth:</span>
+                  <span style="margin-left:6px;">${props.depth || 'N/A'}m</span>
+                </div>
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280;">
+                  Zone: ${props.zone || 'Unknown'} • ${coordinates[1].toFixed(4)}°, ${coordinates[0].toFixed(4)}°
+                </div>
+              </div>
+            </div>
+          `;
+
+          new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(popupHTML)
+            .addTo(map);
+        });
+
+        // Change cursor on hover
+        map.on('mouseenter', 'coral-reef-points', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'coral-reef-points', () => {
+          map.getCanvas().style.cursor = '';
+        });
+      }
+
+      coralReefLayerAdded.current = true;
+      console.log(`Added coral reef layer with ${reefs.length} points`);
+    } catch (err) {
+      console.error('Error adding coral reef layer:', err);
+    }
   };
 
   useEffect(() => {
@@ -444,6 +656,43 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
       }, 100);
     }
   }, [regions, layers.oceanHealth.coastalSegments]);
+
+  // Update coral reef layer when data changes
+  useEffect(() => {
+    if (mapRef.current && coralReefs.length > 0 && showCoralReefs) {
+      console.log(`Updating coral reef layer with ${coralReefs.length} points`);
+      const source = mapRef.current.getSource('coral-reefs') as mapboxgl.GeoJSONSource;
+      if (source) {
+        const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
+          type: 'FeatureCollection',
+          features: coralReefs.map(reef => ({
+            type: 'Feature',
+            properties: {
+              reef_name: reef.reef_name,
+              health_status: reef.health_status,
+              coral_cover: reef.coral_cover_percentage,
+              bleaching: reef.bleaching_severity,
+              temperature: reef.water_temperature_celsius,
+              ph: reef.ph_level,
+              pollution: reef.pollution_level,
+              fish_abundance: reef.fish_abundance,
+              depth: reef.depth_meters,
+              zone: reef.reef_zone,
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [reef.location_lng, reef.location_lat]
+            }
+          }))
+        };
+        source.setData(geojson);
+        console.log('Updated coral reef source data');
+      } else if (!coralReefLayerAdded.current) {
+        console.log('Adding coral reef layer for first time');
+        addCoralReefLayer(mapRef.current, coralReefs);
+      }
+    }
+  }, [coralReefs, showCoralReefs]);
 
   if (loading) {
     return (

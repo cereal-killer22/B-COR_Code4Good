@@ -19,7 +19,7 @@ interface DataMapProps {
 
 // OceanHealthDataMap - wrapper for OceanHealthMap
 export function OceanHealthDataMap({ lat = -20.2, lng = 57.5 }: DataMapProps) {
-  return <OceanHealthMap lat={lat} lng={lng} />;
+  return <OceanHealthMap lat={lat} lng={lng} showCoralReefs={true} />;
 }
 
 // FloodDataMap - wrapper for FloodMap
