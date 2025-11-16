@@ -134,25 +134,70 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
 
   return (
     <div 
-      className="flex flex-col h-[750px] max-h-[88vh] bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+      className="flex flex-col h-[750px] max-h-[88vh] rounded-2xl overflow-hidden"
+      style={{
+        backgroundColor: 'var(--card-background)',
+        border: '1px solid var(--card-border)',
+        boxShadow: 'var(--shadow-md)',
+      }}
       role="main"
       aria-label="ClimaWise chat interface"
     >
       {/* Minimalist Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div 
+        className="px-6 py-4 border-b"
+        style={{
+          borderColor: 'var(--card-border)',
+          backgroundColor: 'var(--card-background)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+              style={{
+                backgroundColor: 'var(--background-secondary)',
+              }}
+            >
               💬
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">ClimaWise</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
+              <h2 
+                className="text-lg font-semibold"
+                style={{ color: 'var(--foreground)' }}
+              >
+                ClimaWise
+              </h2>
+              <p 
+                className="text-xs"
+                style={{ color: 'var(--foreground-secondary)' }}
+              >
+                Online
+              </p>
             </div>
           </div>
           <button
             onClick={handleClearChat}
-            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-700"
+            className="px-3 py-1.5 text-sm rounded-lg transition-colors focus:outline-none focus:ring-2"
+            style={{
+              color: 'var(--foreground-secondary)',
+              backgroundColor: 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--background-secondary)';
+              e.currentTarget.style.color = 'var(--foreground)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--foreground-secondary)';
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = '2px solid var(--focus-ring)';
+              e.currentTarget.style.outlineOffset = '2px';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none';
+            }}
             aria-label="Clear conversation"
           >
             Clear
@@ -163,8 +208,11 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
       {/* Messages Container */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gray-50 dark:bg-gray-950"
-        style={{ scrollBehavior: 'smooth' }}
+        className="flex-1 overflow-y-auto px-6 py-8 space-y-6"
+        style={{ 
+          scrollBehavior: 'smooth',
+          backgroundColor: 'var(--background-secondary)',
+        }}
         role="log"
         aria-label="Chat messages"
         aria-live="polite"
@@ -184,7 +232,12 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
         {/* Error Message */}
         {error && (
           <div 
-            className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300"
+            className="px-4 py-3 rounded-lg text-sm"
+            style={{
+              backgroundColor: 'var(--status-error-bg, rgba(239, 68, 68, 0.1))',
+              border: '1px solid var(--status-error, #ef4444)',
+              color: 'var(--status-error, #dc2626)',
+            }}
             role="alert"
             aria-live="assertive"
           >
@@ -196,7 +249,13 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
 
       {/* Quick Actions - Near Input */}
       {showQuickActions && (
-        <div className="px-6 pt-4 pb-2 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div 
+          className="px-6 pt-4 pb-2 border-t"
+          style={{
+            borderColor: 'var(--card-border)',
+            backgroundColor: 'var(--card-background)',
+          }}
+        >
           <QuickActions onActionClick={handleQuickAction} disabled={isLoading} />
         </div>
       )}

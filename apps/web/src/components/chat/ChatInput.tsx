@@ -72,11 +72,15 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
 
   return (
     <div 
-      className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+      className="px-6 py-4 border-t"
+      style={{
+        borderColor: 'var(--card-border)',
+        backgroundColor: 'var(--card-background)',
+      }}
       role="region"
       aria-label="Chat input area"
     >
-      <div className="flex gap-3 items-end">
+      <div className="flex gap-3 items-center">
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
@@ -91,21 +95,35 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
             disabled={disabled}
             rows={1}
             maxLength={maxLength}
-            className="
-              w-full resize-none rounded-lg border border-gray-300 dark:border-gray-700 
-              px-4 py-3 pr-16
-              focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:border-transparent
-              disabled:opacity-50 disabled:cursor-not-allowed
-              bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-              placeholder:text-gray-400 dark:placeholder:text-gray-500
-              text-sm
-            "
-            style={{ minHeight: '48px', maxHeight: '120px' }}
+            className="w-full resize-none rounded-lg px-4 pr-16 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              border: '1px solid var(--card-border)',
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--foreground)',
+              minHeight: '48px',
+              maxHeight: '120px',
+              paddingTop: '12px',
+              paddingBottom: '12px',
+              lineHeight: '1.5',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = '2px solid var(--focus-ring, var(--primary, #3b82f6))';
+              e.currentTarget.style.outlineOffset = '2px';
+              e.currentTarget.style.borderColor = 'var(--focus-ring, var(--primary, #3b82f6))';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none';
+              e.currentTarget.style.borderColor = 'var(--card-border)';
+            }}
             aria-label="Type your message"
           />
           {message.length > 0 && (
             <div 
-              className="absolute right-3 bottom-3 text-xs text-gray-400 dark:text-gray-500"
+              className="absolute right-3 text-xs"
+              style={{ 
+                color: 'var(--foreground-secondary)',
+                bottom: '12px',
+              }}
               aria-live="polite"
             >
               {message.length}/{maxLength}
@@ -133,17 +151,32 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
               }
             }}
             disabled={disabled}
-            className={`
-              px-4 py-4 rounded-2xl transition-all duration-200
-              flex items-center justify-center
-              min-w-[56px] h-[56px]
-              focus:outline-none focus:ring-4 focus:ring-offset-2
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${isRecording
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/50 voice-recording-pulse focus:ring-red-500/50'
-                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 shadow-md hover:shadow-lg focus:ring-gray-400/50'
+            className="px-4 py-4 rounded-2xl transition-all duration-200 flex items-center justify-center min-w-[48px] h-[48px] focus:outline-none focus:ring-4 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            style={{
+              backgroundColor: isRecording 
+                ? '#ef4444' 
+                : 'var(--background-secondary)',
+              color: isRecording 
+                ? '#ffffff' 
+                : 'var(--foreground)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isRecording) {
+                e.currentTarget.style.backgroundColor = 'var(--card-hover, var(--background-secondary))';
               }
-            `}
+            }}
+            onMouseLeave={(e) => {
+              if (!isRecording) {
+                e.currentTarget.style.backgroundColor = 'var(--background-secondary)';
+              }
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = '2px solid var(--focus-ring, var(--primary, #3b82f6))';
+              e.currentTarget.style.outlineOffset = '2px';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none';
+            }}
             aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
             title={isRecording ? 'Stop recording' : 'Click to speak'}
           >
@@ -182,14 +215,28 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
         <button
           onClick={handleSend}
           disabled={disabled || !message.trim()}
-          className="
-            px-5 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900
-            hover:bg-gray-800 dark:hover:bg-gray-200
-            rounded-lg transition-colors
-            disabled:opacity-40 disabled:cursor-not-allowed
-            focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600 focus:ring-offset-2
-            flex items-center justify-center min-w-[80px]
-          "
+          className="px-5 py-3 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px] h-[48px] focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{
+            backgroundColor: 'var(--primary, #3b82f6)',
+            color: '#ffffff',
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled && message.trim()) {
+              e.currentTarget.style.backgroundColor = 'var(--hover-color, var(--primary, #2563eb))';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!disabled && message.trim()) {
+              e.currentTarget.style.backgroundColor = 'var(--primary, #3b82f6)';
+            }
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.outline = '2px solid var(--focus-ring, var(--primary, #3b82f6))';
+            e.currentTarget.style.outlineOffset = '2px';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.outline = 'none';
+          }}
           aria-label="Send message"
         >
           {disabled ? (
@@ -220,7 +267,12 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
       {/* Error Message */}
       {voiceError && (
         <div 
-          className="mt-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300"
+          className="mt-3 px-4 py-3 rounded-lg text-sm"
+          style={{
+            backgroundColor: 'var(--status-error-bg, rgba(239, 68, 68, 0.1))',
+            border: '1px solid var(--status-error, #ef4444)',
+            color: 'var(--status-error, #dc2626)',
+          }}
           role="alert"
           aria-live="assertive"
         >
@@ -242,11 +294,31 @@ export default function ChatInput({ onSendMessage, disabled = false }: ChatInput
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-4 px-2"
         id="keyboard-hints"
       >
-        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          Press <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-sm">Enter</kbd> to send
+        <p 
+          className="text-xs font-medium"
+          style={{ color: 'var(--foreground-secondary)' }}
+        >
+          Press <kbd 
+            className="px-2 py-1 rounded-lg text-xs font-bold shadow-sm"
+            style={{
+              backgroundColor: 'var(--background-secondary)',
+              border: '1px solid var(--card-border)',
+              color: 'var(--foreground)',
+            }}
+          >Enter</kbd> to send
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 shadow-sm">Shift+Enter</kbd> for new line
+        <p 
+          className="text-xs font-medium"
+          style={{ color: 'var(--foreground-secondary)' }}
+        >
+          <kbd 
+            className="px-2 py-1 rounded-lg text-xs font-bold shadow-sm"
+            style={{
+              backgroundColor: 'var(--background-secondary)',
+              border: '1px solid var(--card-border)',
+              color: 'var(--foreground)',
+            }}
+          >Shift+Enter</kbd> for new line
         </p>
       </div>
     </div>
