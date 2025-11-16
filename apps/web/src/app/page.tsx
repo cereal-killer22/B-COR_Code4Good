@@ -151,7 +151,10 @@ export default function Home() {
             <Card className="hover:shadow-xl transition-all duration-300 border-2 border-cyan-200">
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">💬</div>
-                <h3 className="text-lg font-semibold text-cyan-700 mb-2">ClimaWise</h3>
+                <h3 className="text-lg font-semibold text-cyan-700 mb-2 flex items-center justify-center gap-2">
+                  ClimaWise
+                  <MicIcon text="ClimaWise. Cyclone, Flood and Ocean AI" size="small" />
+                </h3>
                 <p className="text-sm text-cyan-600">Cyclone, Flood & Ocean AI</p>
               </div>
             </Card>
@@ -260,37 +263,45 @@ export default function Home() {
             <MicIcon text="Default Alert Thresholds. Critical Hot: 40 degrees Celsius. Hot: 30 degrees Celsius. Cold: 5 degrees Celsius. Critical Cold: negative 10 degrees Celsius." size="small" />
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg relative">
               <div className="text-2xl mb-2">🔥</div>
-              <div className="font-bold text-red-600 flex items-center justify-center gap-2">
+              <div className="font-bold text-red-600">
                 Critical Hot
-                <MicIcon text="Critical Hot: 40 degrees Celsius" size="small" />
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-300">40°C</div>
+              <div className="absolute bottom-3 left-3">
+                <MicIcon text="Critical Hot: 40 degrees Celsius" size="small" />
+              </div>
             </div>
-            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg relative">
               <div className="text-2xl mb-2">☀️</div>
-              <div className="font-bold text-orange-600 flex items-center justify-center gap-2">
+              <div className="font-bold text-orange-600">
                 Hot
-                <MicIcon text="Hot: 30 degrees Celsius" size="small" />
               </div>
               <div className="text-sm text-gray-600">30°C</div>
+              <div className="absolute bottom-3 left-3">
+                <MicIcon text="Hot: 30 degrees Celsius" size="small" />
+              </div>
             </div>
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg relative">
               <div className="text-2xl mb-2">❄️</div>
-              <div className="font-bold text-blue-600 flex items-center justify-center gap-2">
+              <div className="font-bold text-blue-600">
                 Cold
-                <MicIcon text="Cold: 5 degrees Celsius" size="small" />
               </div>
               <div className="text-sm text-gray-600">5°C</div>
+              <div className="absolute bottom-3 left-3">
+                <MicIcon text="Cold: 5 degrees Celsius" size="small" />
+              </div>
             </div>
-            <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg relative">
               <div className="text-2xl mb-2">🧊</div>
-              <div className="font-bold text-blue-800 flex items-center justify-center gap-2">
+              <div className="font-bold text-blue-800">
                 Critical Cold
-                <MicIcon text="Critical Cold: negative 10 degrees Celsius" size="small" />
               </div>
               <div className="text-sm text-gray-600">-10°C</div>
+              <div className="absolute bottom-3 left-3">
+                <MicIcon text="Critical Cold: negative 10 degrees Celsius" size="small" />
+              </div>
             </div>
           </div>
         </Card>
