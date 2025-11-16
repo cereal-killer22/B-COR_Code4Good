@@ -58,11 +58,13 @@
             try {
                 // Check for TensorFlow.js model in localStorage
                 const modelKeys = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.includes('tensorflowjs_models') && key.includes('cyclone-lstm-model')) {
-                        modelKeys.push(key);
-                        modelExists = true;
+                if (typeof localStorage !== 'undefined' && localStorage !== null) {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && typeof key === 'string' && key.includes('tensorflowjs_models') && key.includes('cyclone-lstm-model')) {
+                            modelKeys.push(key);
+                            modelExists = true;
+                        }
                     }
                 }
                 
@@ -107,15 +109,20 @@
             
             // Storage information
             try {
+                if (typeof localStorage === 'undefined' || localStorage === null) {
+                    document.getElementById('storageInfo').innerHTML = '⚠️ <strong>localStorage not available</strong>';
+                    return;
+                }
+                
                 const totalKeys = localStorage.length;
                 const modelKeys = [];
                 let totalSize = 0;
                 
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key) {
+                    if (key && typeof key === 'string') {
                         const value = localStorage.getItem(key);
-                        if (value) {
+                        if (value && typeof value === 'string') {
                             totalSize += key.length + value.length;
                             if (key.includes('tensorflow') || key.includes('climaguard') || key.includes('cyclone')) {
                                 modelKeys.push({
@@ -188,21 +195,30 @@
         function clearModel() {
             if (confirm('Clear all stored model data? This will remove the trained model and you will need to retrain.')) {
                 try {
+                    if (typeof localStorage === 'undefined' || localStorage === null) {
+                        alert('❌ localStorage is not available');
+                        return;
+                    }
+                    
                     // Remove all model-related localStorage items
                     const keysToRemove = [];
                     for (let i = 0; i < localStorage.length; i++) {
                         const key = localStorage.key(i);
-                        if (key && (key.includes('tensorflow') || key.includes('climaguard') || key.includes('cyclone'))) {
+                        if (key && typeof key === 'string' && (key.includes('tensorflow') || key.includes('climaguard') || key.includes('cyclone'))) {
                             keysToRemove.push(key);
                         }
                     }
                     
-                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                    keysToRemove.forEach(key => {
+                        if (key && typeof key === 'string') {
+                            localStorage.removeItem(key);
+                        }
+                    });
                     
                     alert(`🗑️ Cleared ${keysToRemove.length} model-related storage items.`);
                     checkStatus();
                 } catch (error) {
-                    alert('❌ Error clearing storage: ' + error.message);
+                    alert('❌ Error clearing storage: ' + (error instanceof Error ? error.message : String(error)));
                 }
             }
         }

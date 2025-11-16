@@ -1,19 +1,41 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useMemo } from 'react';
+import { 
+  OceanHealthDataMap,
+  PollutionDataMap,
+  FloodDataMap,
+  CycloneDataMap,
+  FishingActivityDataMap,
+} from '@/components/map/DataMapComponents';
 
-// Dynamically import the map to avoid SSR issues with Leaflet
-const MapWithNoSSR = dynamic(() => import('./MapComponent'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-96 bg-gray-100 flex items-center justify-center">
-      <p className="text-gray-600">Loading Map...</p>
-    </div>
-  ),
-});
+type MapType = 'ocean-health' | 'pollution' | 'flood' | 'cyclone' | 'fishing' | 'overview';
 
-export default function ClimaGuardMap() {
+interface ClimaGuardMapProps {
+  type?: MapType;
+  lat?: number;
+  lng?: number;
+  className?: string;
+}
+
+/**
+ * ClimaGuard Map Component
+ * Generic map wrapper that displays the appropriate data-driven map based on type
+ */
+export default function ClimaGuardMap({ 
+  type = 'overview',
+  lat = -20.2,
+  lng = 57.5,
+  className = ''
+}: ClimaGuardMapProps) {
+  const mapComponents = {
+    'ocean-health': <OceanHealthDataMap lat={lat} lng={lng} />,
+    'pollution': <PollutionDataMap lat={lat} lng={lng} />,
+    'flood': <FloodDataMap lat={lat} lng={lng} />,
+    'cyclone': <CycloneDataMap lat={lat} lng={lng} />,
+    'fishing': <FishingActivityDataMap lat={lat} lng={lng} />,
+    'overview': <OceanHealthDataMap lat={lat} lng={lng} />, // Default to ocean health for overview
+  };
+
   return (
     <div className={`w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300 ${className}`}>
       {mapComponents[type]}

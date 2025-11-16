@@ -1,19 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import BaseMapboxMap from './BaseMapboxMap';
+import { addMapboxMarker } from '@/lib/map/MapboxEngine';
 import type { CyclonePrediction } from '@climaguard/shared/types/climate';
-
-// Import Leaflet CSS (required for map rendering)
-if (typeof window !== 'undefined') {
-  require('leaflet/dist/leaflet.css');
-}
-
-// Dynamically import leaflet components to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+import type { Map as MapboxMap, Marker } from 'mapbox-gl';
 
 interface CycloneMapProps {
   lat?: number;
@@ -24,6 +15,9 @@ export default function CycloneMap({ lat = -20.2, lng = 57.5 }: CycloneMapProps)
   const [prediction, setPrediction] = useState<CyclonePrediction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const markerRef = useRef<Marker | null>(null);
+  const containerId = useMemo(() => `cyclone-map-${Math.random().toString(36).substr(2, 9)}`, []);
 
   useEffect(() => {
     const fetchPrediction = async () => {
@@ -60,6 +54,72 @@ export default function CycloneMap({ lat = -20.2, lng = 57.5 }: CycloneMapProps)
     }
   };
 
+  const updateMarker = (map: MapboxMap) => {
+    if (!prediction) return;
+
+    // Remove existing marker
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
+
+    const color = getRiskColor(prediction.prediction.riskLevel);
+    const popupHTML = `
+      <div style="width:320px;font-family:'Figtree',sans-serif;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);overflow:hidden;padding:16px;">
+        <h3 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#222;">🌀 Cyclone Risk</h3>
+        <div style="space-y:8px;font-size:14px;">
+          <div>
+            <span style="font-weight:600;">Risk Level:</span>{' '}
+            <span style="text-transform:uppercase;color:${color};">
+              ${prediction.prediction.riskLevel}
+            </span>
+          </div>
+          <div>
+            <span style="font-weight:600;">Probability:</span>{' '}
+            ${(prediction.prediction.probability * 100).toFixed(1)}%
+          </div>
+          <div>
+            <span style="font-weight:600;">Pressure:</span>{' '}
+            ${prediction.observations.minPressure.toFixed(1)} hPa
+          </div>
+          <div>
+            <span style="font-weight:600;">Wind Speed:</span>{' '}
+            ${prediction.observations.maxWindSpeed.toFixed(1)} km/h
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#666;">
+            ${prediction.prediction.explanation}
+          </div>
+        </div>
+      </div>
+    `;
+
+    markerRef.current = addMapboxMarker(
+      map,
+      [lng, lat], // Mapbox uses [lng, lat]
+      {
+        color,
+        size: 22,
+      },
+      popupHTML
+    );
+  };
+
+  const handleMapReady = (map: MapboxMap | null) => {
+    if (!map) return;
+    mapRef.current = map;
+
+    // Add marker when map is ready and data is available
+    if (prediction) {
+      updateMarker(map);
+    }
+  };
+
+  // Update marker when prediction changes - MUST be before any early returns
+  useEffect(() => {
+    if (mapRef.current && prediction) {
+      updateMarker(mapRef.current);
+    }
+  }, [prediction, lat, lng]);
+
   if (loading) {
     return (
       <div className="w-full h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
@@ -77,56 +137,14 @@ export default function CycloneMap({ lat = -20.2, lng = 57.5 }: CycloneMapProps)
   }
 
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden border border-gray-300">
-      <MapContainer
-        center={[lat, lng]}
+    <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-300 relative">
+      <BaseMapboxMap
+        containerId={containerId}
+        center={[lng, lat]} // Mapbox uses [lng, lat]
         zoom={10}
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <CircleMarker
-          center={[lat, lng]}
-          radius={20}
-          pathOptions={{
-            fillColor: getRiskColor(prediction.prediction.riskLevel),
-            fillOpacity: 0.7,
-            color: '#000',
-            weight: 2
-          }}
-        >
-          <Popup>
-            <div className="p-2">
-              <h3 className="font-bold text-lg mb-2">🌀 Cyclone Risk</h3>
-              <div className="space-y-1 text-sm">
-                <div>
-                  <span className="font-semibold">Risk Level:</span>{' '}
-                  <span className="uppercase" style={{ color: getRiskColor(prediction.prediction.riskLevel) }}>
-                    {prediction.prediction.riskLevel}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Probability:</span>{' '}
-                  {(prediction.prediction.probability * 100).toFixed(1)}%
-                </div>
-                <div>
-                  <span className="font-semibold">Pressure:</span>{' '}
-                  {prediction.observations.minPressure.toFixed(1)} hPa
-                </div>
-                <div>
-                  <span className="font-semibold">Wind Speed:</span>{' '}
-                  {prediction.observations.maxWindSpeed.toFixed(1)} km/h
-                </div>
-                <div className="mt-2 pt-2 border-t text-xs text-gray-600">
-                  {prediction.prediction.explanation}
-                </div>
-              </div>
-            </div>
-          </Popup>
-        </CircleMarker>
-      </MapContainer>
+        className="w-full h-full"
+        onMapReady={handleMapReady}
+      />
     </div>
   );
 }

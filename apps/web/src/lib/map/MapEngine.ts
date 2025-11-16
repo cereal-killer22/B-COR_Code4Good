@@ -491,7 +491,7 @@ export function addMarker(
   const L = getLeaflet();
 
   const marker = L.marker(coords, {
-    icon: options.icon,
+    icon: icon,
     title: options.title,
     alt: options.alt,
     opacity: options.opacity,

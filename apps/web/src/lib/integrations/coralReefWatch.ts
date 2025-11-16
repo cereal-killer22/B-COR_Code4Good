@@ -219,12 +219,24 @@ export class CoralReefWatch {
         throw new Error('No data in ERDDAP response');
       }
       
-      // Get column indices
+      // Get column indices - check if columnNames exists and is an array
+      if (!table.columnNames || !Array.isArray(table.columnNames)) {
+        throw new Error('Invalid columnNames in ERDDAP response');
+      }
+      
       const timeIdx = table.columnNames.indexOf('time');
-      const sstIdx = table.columnNames.indexOf('CRW_SST') || table.columnNames.indexOf('SST');
-      const hotspotIdx = table.columnNames.indexOf('CRW_HOTSPOT') || table.columnNames.indexOf('HOTSPOT');
-      const dhwIdx = table.columnNames.indexOf('CRW_DHW') || table.columnNames.indexOf('DHW');
-      const baaIdx = table.columnNames.indexOf('CRW_BAA') || table.columnNames.indexOf('BAA');
+      const sstIdx = table.columnNames.indexOf('CRW_SST') >= 0 
+        ? table.columnNames.indexOf('CRW_SST') 
+        : table.columnNames.indexOf('SST');
+      const hotspotIdx = table.columnNames.indexOf('CRW_HOTSPOT') >= 0
+        ? table.columnNames.indexOf('CRW_HOTSPOT')
+        : table.columnNames.indexOf('HOTSPOT');
+      const dhwIdx = table.columnNames.indexOf('CRW_DHW') >= 0
+        ? table.columnNames.indexOf('CRW_DHW')
+        : table.columnNames.indexOf('DHW');
+      const baaIdx = table.columnNames.indexOf('CRW_BAA') >= 0
+        ? table.columnNames.indexOf('CRW_BAA')
+        : table.columnNames.indexOf('BAA');
       
       // Get most recent row
       const row = table.rows[table.rows.length - 1];
@@ -274,7 +286,14 @@ export class CoralReefWatch {
         throw new Error('No SST trend data');
       }
       
-      const sstIdx = table.columnNames.indexOf('CRW_SST') || table.columnNames.indexOf('SST');
+      // Check if columnNames exists and is an array
+      if (!table.columnNames || !Array.isArray(table.columnNames)) {
+        throw new Error('Invalid columnNames in ERDDAP SST response');
+      }
+      
+      const sstIdx = table.columnNames.indexOf('CRW_SST') >= 0
+        ? table.columnNames.indexOf('CRW_SST')
+        : table.columnNames.indexOf('SST');
       
       const sstValues: number[] = [];
       for (const row of table.rows) {

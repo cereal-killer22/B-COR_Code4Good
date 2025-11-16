@@ -4,11 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import FontSizeControl from './FontSizeControl';
 import HighContrastToggle from './HighContrastToggle';
-<<<<<<< HEAD
-=======
-import ColorBlindFilter from './ColorBlindFilter';
 import TTSToggle from './TTSToggle';
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -278,20 +274,9 @@ export default function SettingsPanel({ isOpen, onClose, triggerRef }: SettingsP
           {/* High Contrast Toggle */}
           <HighContrastToggle />
 
-<<<<<<< HEAD
-          {/* Placeholder for future accessibility controls */}
-          <div className="text-sm text-theme-secondary" style={{ color: 'var(--foreground-secondary)' }}>
-            More accessibility options coming soon...
-=======
           {/* Text-to-Speech Toggle */}
           <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
             <TTSToggle />
-          </div>
-
-          {/* Color-Blind Filter */}
-          <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--card-border)' }}>
-            <ColorBlindFilter />
->>>>>>> 2f12656f7c8cdf5ab754db90669ca0b0b3df326d
           </div>
         </div>
       </div>

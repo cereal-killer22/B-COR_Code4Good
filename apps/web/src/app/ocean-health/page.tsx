@@ -1,5 +1,6 @@
 import OceanHealthDashboard from '@/components/OceanHealthDashboard';
 import OceanHealthMap from '@/components/OceanHealthMap';
+import { OceanHealthDataMap } from '@/components/map/DataMapComponents';
 import BleachingRiskPanel from '@/components/BleachingRiskPanel';
 import AcidificationTracker from '@/components/AcidificationTracker';
 import CoastalRiskWidget from '@/components/CoastalRiskWidget';

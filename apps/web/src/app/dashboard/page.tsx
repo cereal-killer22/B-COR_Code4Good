@@ -6,7 +6,6 @@ import ClimaGuardMap from '@/components/ClimaGuardMap';
 import NotificationCenter from '@/components/NotificationCenter';
 import AIPredictionInterface from '@/components/AIPredictionInterface';
 import LiveTimeDisplay from '@/components/LiveTimeDisplay';
-import SDG14Dashboard from '@/components/SDG14Dashboard';
 import OceanHealthDashboard from '@/components/OceanHealthDashboard';
 import { OceanHealthDataMap } from '@/components/map/DataMapComponents';
 import BleachingRiskPanel from '@/components/BleachingRiskPanel';
@@ -185,7 +184,7 @@ type TabItem = {
 };
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cyclone' | 'flood' | 'ocean-health' | 'alerts'>('overview');
   const [showAlerts, setShowAlerts] = useState(true);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [floodData, setFloodData] = useState<any>(null);
@@ -269,8 +268,9 @@ export default function Dashboard() {
     if (!isEnabled || !autoReadEnabled || !alertData.length) return;
 
     alertData.forEach((alert) => {
-      if (!previousAlertsRef.current.has(alert.id)) {
-        previousAlertsRef.current.add(alert.id);
+      const alertId = String(alert.id);
+      if (!previousAlertsRef.current.has(alertId)) {
+        previousAlertsRef.current.add(alertId);
         
         // Read critical/high priority alerts immediately
         if (alert.level.toLowerCase() === 'extreme' || alert.level.toLowerCase() === 'high') {
@@ -283,7 +283,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-theme" style={{ background: 'linear-gradient(to bottom right, var(--background-secondary), var(--background))' }}>
-
       {/* Header */}
       <PageHeader 
         title="🛡️ ClimaGuard" 
@@ -330,7 +329,11 @@ export default function Dashboard() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (tab.id === 'overview' || tab.id === 'cyclone' || tab.id === 'flood' || tab.id === 'ocean-health' || tab.id === 'alerts') {
+                      setActiveTab(tab.id);
+                    }
+                  }}
                   className={`py-3 px-6 rounded-t-lg font-medium text-sm transition-all duration-200 relative ${
                     activeTab === tab.id
                       ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500 dark:border-blue-400'
@@ -695,8 +698,6 @@ export default function Dashboard() {
               />
               <div className="h-[650px] min-h-[650px] md:h-[75vh] rounded-lg border overflow-hidden">
                 <ClimaGuardMap type="cyclone" />
-              <div className="h-96 rounded-lg border overflow-hidden">
-                <ClimaGuardMap />
               </div>
               
               {/* Map Legend */}
@@ -759,36 +760,6 @@ export default function Dashboard() {
                     <li>• Real-time environmental monitoring</li>
                     <li>• Unified risk visualization</li>
                   </ul>
-              <h2 className="text-xl font-semibold mb-4">🌪️ Cyclone Trajectory Tracking</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <ClimaGuardMap />
-                </div>
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-800 mb-2">LSTM Neural Network</h3>
-                    <p className="text-sm text-blue-700">
-                      Advanced deep learning model trained on historical cyclone data from IBTrACS and regional meteorological stations for trajectory prediction.
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold mb-2">Trajectory Features:</h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• 72-hour trajectory prediction</li>
-                      <li>• Wind intensity forecasting</li>
-                      <li>• Landfall impact assessment</li>
-                      <li>• Real-time model updates</li>
-                    </ul>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-green-800 mb-2">Integrated Features:</h4>
-                    <ul className="text-sm space-y-1 text-green-700">
-                      <li>• Formation predictions on exact coordinates</li>
-                      <li>• Expected formation dates and times</li>
-                      <li>• Real-time environmental monitoring</li>
-                      <li>• Unified risk visualization</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </Card>
