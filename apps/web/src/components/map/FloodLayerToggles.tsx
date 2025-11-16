@@ -13,13 +13,13 @@ export default function FloodLayerToggles() {
   ];
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-xs">
       <h3 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Flood Layers</h3>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {layerConfig.map((layer) => (
           <label
             key={layer.id}
-            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors"
+            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 px-2 py-1.5 rounded transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -35,13 +35,13 @@ export default function FloodLayerToggles() {
               onClick={(e) => {
                 e.stopPropagation();
               }}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 flex-shrink-0"
             />
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-lg">{layer.icon}</span>
-              <span className="text-sm text-gray-700 dark:text-gray-300">{layer.label}</span>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="text-base flex-shrink-0">{layer.icon}</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{layer.label}</span>
               <div
-                className="w-4 h-4 rounded-full border border-gray-300"
+                className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0"
                 style={{ backgroundColor: layer.color }}
               />
             </div>
