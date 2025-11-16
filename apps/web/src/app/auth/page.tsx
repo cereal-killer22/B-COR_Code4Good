@@ -135,7 +135,7 @@ export default function AuthPage() {
             <div className="text-3xl mb-3 text-center">🚨</div>
             <h3 className="text-lg font-semibold mb-2">Smart Alerts</h3>
             <p className="text-gray-600 text-sm">
-              Personalized notifications via SMS, Telegram, and email based on your location and preferences.
+              Personalized notifications via SMS, Radio Broadcast, and email based on your location and preferences.
             </p>
           </div>
         </div>

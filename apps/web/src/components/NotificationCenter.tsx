@@ -83,7 +83,7 @@ export default function NotificationCenter() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'sms': return '📱';
-      case 'telegram': return '✈️';
+      case 'telegram': return '📻';
       case 'email': return '📧';
       default: return '📨';
     }
@@ -164,7 +164,11 @@ export default function NotificationCenter() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {type === 'all' ? '📊 All' : `${getTypeIcon(type)} ${type.toUpperCase()}`}
+            {type === 'all' 
+              ? '📊 All' 
+              : type === 'telegram'
+              ? '📻 Radio Broadcast'
+              : `${getTypeIcon(type)} ${type.toUpperCase()}`}
           </button>
         ))}
       </div>
@@ -207,7 +211,7 @@ export default function NotificationCenter() {
             <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center space-x-4">
                 <span>Priority: {notification.priority.toUpperCase()}</span>
-                <span>Channel: {notification.type.toUpperCase()}</span>
+                <span>Channel: {notification.type === 'telegram' ? 'Radio Broadcast' : notification.type.toUpperCase()}</span>
               </div>
               {notification.status === 'sent' && (
                 <div className="flex items-center space-x-1">

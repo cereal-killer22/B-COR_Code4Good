@@ -17,7 +17,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "ClimaGuard - AI-Powered Climate Risk Platform",
-  description: "Protecting Mauritius from climate disasters with AI-powered cyclone and flood prediction. Real-time alerts via SMS, Telegram, and email.",
+  description: "Protecting Mauritius from climate disasters with AI-powered cyclone and flood prediction. Real-time alerts via SMS, Radio Broadcast, and email.",
   keywords: "climate, cyclone, flood, prediction, AI, Mauritius, weather, alerts",
 };
 
