@@ -24,7 +24,7 @@ export function OceanHealthDataMap({ lat = -20.2, lng = 57.5 }: DataMapProps) {
 
 // FloodDataMap - wrapper for FloodMap
 export function FloodDataMap({ lat = -20.2, lng = 57.5 }: DataMapProps) {
-  return <FloodMap lat={lat} lng={lng} />;
+  return <FloodMap lat={lat} lng={lng} showStoredPredictions={true} />;
 }
 
 // CycloneDataMap - wrapper for CycloneMap

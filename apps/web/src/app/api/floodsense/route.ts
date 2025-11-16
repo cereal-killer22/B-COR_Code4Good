@@ -6,6 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { floodRiskFromPrecip } from '@/lib/predictors';
+// Try to use the TF.js CNN model when available. If the model isn't loaded
+// or fails, we'll fall back to the deterministic heuristic above.
+import { floodCNN, FloodRiskInput } from '@/lib/models/floodCNN';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,8 +58,37 @@ export async function GET(request: NextRequest) {
     // Get soil moisture if available
     const soilMoisture = hourly.soil_moisture_0_to_10cm?.[0];
 
-    // Get prediction
-    const prediction = floodRiskFromPrecip(precip24h, precip72h, soilMoisture);
+    // First try to use the TF.js Flood CNN model (if available).
+    let prediction;
+    try {
+      const input: FloodRiskInput = {
+        coordinates: { lat, lng },
+        elevation: 10, // default fallback (meters)
+        rainfall: precip24h, // mm in last 24h
+        riverLevel: 0, // unknown, default 0m above normal
+        soilSaturation: (soilMoisture ?? 0) * 100, // convert to percentage when possible
+        urbanization: 30, // default % built area
+        drainageCapacity: 0.5, // default 0-1
+        historicalFlooding: false
+      };
+
+      // floodCNN.predictSingle may throw if models aren't loaded; await it.
+      const modelResult = await floodCNN.predictSingle(input as any);
+      // The TF model returns FloodRiskResult; keep consistent response shape
+      prediction = {
+        model: 'cnn',
+        result: modelResult
+      };
+
+    } catch (cnnError) {
+      // If TF.js model isn't available, fallback to the deterministic predictor
+      console.warn('Flood CNN model unavailable or failed, falling back to heuristic:', cnnError);
+      const heuristic = floodRiskFromPrecip(precip24h, precip72h, soilMoisture);
+      prediction = {
+        model: 'heuristic',
+        result: heuristic
+      };
+    }
 
     // Calculate forecast precipitation (24h and 72h ahead)
     const forecast24h = hourly.precipitation.slice(24, 48).reduce((sum: number, val: number) => sum + (val || 0), 0);

@@ -416,11 +416,11 @@ export default function Dashboard() {
                     }
                     className="mb-6"
                   />
-                  <div className="relative">
-                    <div className="rounded-lg overflow-hidden border border-gray-200 h-[650px] min-h-[650px] md:h-[75vh]">
+                  <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
+                    <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200">
                       <ClimaGuardMap />
                     </div>
-                    <div className="absolute top-4 right-4 z-[1000]">
+                    <div className="absolute top-4 right-4 z-10 max-w-[280px]">
                       <OverviewToggle />
                     </div>
                   </div>
@@ -697,12 +697,12 @@ export default function Dashboard() {
                 }
                 className="mb-6"
               />
-              <div className="h-[650px] min-h-[650px] md:h-[75vh] rounded-lg border overflow-hidden">
-                <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
+              <div className="relative h-[650px] min-h-[650px] md:h-[75vh]">
+                <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200">
                   <ClimaGuardMap type="cyclone" />
-                  <div className="absolute top-4 right-4 z-[1000]">
-                    <CycloneLayerToggles />
-                  </div>
+                </div>
+                <div className="absolute top-4 right-4 z-10 max-w-[280px]">
+                  <CycloneLayerToggles />
                 </div>
               </div>
               
@@ -783,9 +783,11 @@ export default function Dashboard() {
               />
               <div className="flex flex-col md:flex-row gap-6">
                 {/* Map Section - Left side on desktop */}
-                <div className="flex-1 relative h-[650px] min-h-[650px] md:h-[75vh] rounded-lg overflow-hidden border border-gray-200">
-                  <ClimaGuardMap type="flood" />
-                  <div className="absolute top-4 right-4 z-[1000]">
+                <div className="flex-1 relative h-[650px] min-h-[650px] md:h-[75vh]">
+                  <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200">
+                    <ClimaGuardMap type="flood" />
+                  </div>
+                  <div className="absolute top-4 right-4 z-10 max-w-[280px]">
                     <FloodLayerToggles />
                   </div>
                 </div>

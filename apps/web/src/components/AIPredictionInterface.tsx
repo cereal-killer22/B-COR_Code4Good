@@ -78,21 +78,41 @@ export default function AIPredictionInterface() {
     
     try {
       // Fetch LSTM cyclone predictions
-      const cycloneResponse = await fetch('/api/cyclone-predictions');
-      if (cycloneResponse.ok) {
-        const cycloneData = await cycloneResponse.json();
-        if (cycloneData.predictions && cycloneData.predictions.length > 0) {
-          setCyclonePrediction(cycloneData.predictions[0]);
+      try {
+        const cycloneResponse = await fetch('/api/cyclone-predictions', {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000) // 10s timeout
+        });
+        if (cycloneResponse.ok) {
+          const cycloneData = await cycloneResponse.json();
+          if (cycloneData.predictions && cycloneData.predictions.length > 0) {
+            setCyclonePrediction(cycloneData.predictions[0]);
+          }
+          console.log('LSTM Model Info:', cycloneData.modelInfo);
+        } else {
+          console.warn('Cyclone prediction API returned:', cycloneResponse.status);
         }
-        console.log('LSTM Model Info:', cycloneData.modelInfo);
+      } catch (cycloneErr) {
+        console.error('Cyclone prediction fetch failed:', cycloneErr);
+        // Continue to flood predictions even if cyclone fails
       }
 
       // Fetch CNN flood predictions for Miami area 
-      const floodResponse = await fetch('/api/flood-predictions?lat=25.7617&lng=-80.1918&radius=0.1');
-      if (floodResponse.ok) {
-        const floodData = await floodResponse.json();
-        setFloodPrediction(floodData.prediction);
-        console.log('CNN Model Info:', floodData.modelInfo);
+      try {
+        const floodResponse = await fetch('/api/flood-predictions?lat=25.7617&lng=-80.1918&radius=0.1', {
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000) // 10s timeout
+        });
+        if (floodResponse.ok) {
+          const floodData = await floodResponse.json();
+          setFloodPrediction(floodData.prediction);
+          console.log('CNN Model Info:', floodData.modelInfo);
+        } else {
+          console.warn('Flood prediction API returned:', floodResponse.status);
+        }
+      } catch (floodErr) {
+        console.error('Flood prediction fetch failed:', floodErr);
+        // Continue gracefully even if flood prediction fails
       }
       
     } catch (err) {
