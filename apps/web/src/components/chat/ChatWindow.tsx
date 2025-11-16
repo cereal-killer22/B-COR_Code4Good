@@ -138,7 +138,7 @@ Whether you need quick safety tips or in-depth explanations, I'm here to help. W
 
   return (
     <div 
-      className="flex flex-col h-[750px] max-h-[88vh] rounded-2xl overflow-hidden"
+      className="flex flex-col h-[850px] max-h-[90vh] rounded-2xl overflow-hidden"
       style={{
         backgroundColor: 'var(--card-background)',
         border: '1px solid var(--card-border)',

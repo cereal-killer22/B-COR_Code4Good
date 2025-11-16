@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import MicIcon from '@/components/MicIcon';
 
 interface MessageBubbleProps {
   message: string;
@@ -52,7 +53,7 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
         
         {/* Message Bubble */}
         <div
-          className="px-4 py-3 rounded-xl"
+          className="px-4 py-3 rounded-xl relative"
           style={{
             backgroundColor: isUser ? 'var(--primary, #3b82f6)' : 'var(--card-background)',
             color: isUser ? '#ffffff' : 'var(--foreground)',
@@ -88,6 +89,22 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
             aria-label={`Sent at ${formattedTime}`}
           >
             <time dateTime={timestamp}>{formattedTime}</time>
+          </div>
+
+          {/* TTS Mic Icon - Bottom Right */}
+          <div 
+            className="absolute bottom-2 right-2"
+            style={{
+              transform: 'scale(0.7)',
+              transformOrigin: 'bottom right',
+            }}
+          >
+            <MicIcon 
+              text={message.replace(/\*\*/g, '')} 
+              size="small" 
+              position="inline"
+              className={`!m-0 ${isUser ? 'chat-mic-user' : ''}`}
+            />
           </div>
         </div>
 
