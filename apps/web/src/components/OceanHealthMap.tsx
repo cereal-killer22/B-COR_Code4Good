@@ -26,12 +26,19 @@ interface RegionData {
     chlorophyll?: number;
     ph?: number;
     dissolvedOxygen?: number;
+    salinity?: number;
     pollutionIndex?: number;
   };
   prediction: {
     score: number;
     riskLevel: string;
     explanation: string;
+  };
+  metrics?: {
+    waterQuality?: any;
+    pollution?: any;
+    biodiversity?: any;
+    reefHealth?: any;
   };
 }
 
@@ -42,6 +49,7 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
+  const regionMarkersRef = useRef<Marker[]>([]);
   const regionLayersRef = useRef<string[]>([]);
   const containerId = useMemo(() => `ocean-health-map-${Math.random().toString(36).substr(2, 9)}`, []);
   const { layers } = useLayerToggle();
@@ -70,7 +78,7 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
     };
 
     fetchPrediction();
-    const interval = setInterval(fetchPrediction, 3600000);
+    const interval = setInterval(fetchPrediction, 3600000); // 1 hour
     return () => clearInterval(interval);
   }, [lat, lng]);
 
@@ -92,57 +100,183 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
   };
 
   const updateRegionalLayers = (map: MapboxMap) => {
-    // Clear existing region layers
-    regionLayersRef.current.forEach(layerId => {
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-      if (map.getLayer(`${layerId}-stroke`)) map.removeLayer(`${layerId}-stroke`);
-      if (map.getSource(layerId)) map.removeSource(layerId);
-    });
-    regionLayersRef.current = [];
-
-    if (!layers.oceanHealth.coastalSegments || Object.keys(regions).length === 0) {
+    if (!map.loaded() || !map.getContainer()) {
+      map.once('load', () => {
+        if (mapRef.current) {
+          updateRegionalLayers(mapRef.current);
+        }
+      });
       return;
     }
 
-    // Add polygon for each region
+    // Clear existing region markers
+    regionMarkersRef.current.forEach(marker => {
+      if (marker) marker.remove();
+    });
+    regionMarkersRef.current = [];
+
+    // Clear existing region layers
+    regionLayersRef.current.forEach(layerId => {
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getLayer(`${layerId}-stroke`)) map.removeLayer(`${layerId}-stroke`);
+        if (map.getSource(layerId)) map.removeSource(layerId);
+      } catch (e) {
+        // Ignore errors
+      }
+    });
+    regionLayersRef.current = [];
+
+    // Always show regions if data is available (not dependent on toggle)
+    if (Object.keys(regions).length === 0) {
+      return;
+    }
+
+    // Add polygon and marker for each region
     Object.entries(regions).forEach(([regionKey, regionData]) => {
-      const bounds = regionData.bounds;
-      const polygon: [number, number][] = [
-        [bounds[0][0], bounds[0][1]], // SW
-        [bounds[1][0], bounds[0][1]], // SE
-        [bounds[1][0], bounds[1][1]], // NE
-        [bounds[0][0], bounds[1][1]], // NW
-        [bounds[0][0], bounds[0][1]], // Close
-      ];
+      try {
+        const bounds = regionData.bounds;
+        const polygon: [number, number][] = [
+          [bounds[0][0], bounds[0][1]], // SW
+          [bounds[1][0], bounds[0][1]], // SE
+          [bounds[1][0], bounds[1][1]], // NE
+          [bounds[0][0], bounds[1][1]], // NW
+          [bounds[0][0], bounds[0][1]], // Close
+        ];
 
-      const score = regionData.prediction.score;
-      const color = getScoreColor(score);
-      const layerId = `region-${regionKey}`;
+        const score = regionData.prediction.score;
+        const color = getScoreColor(score);
+        const layerId = `region-${regionKey}`;
 
-      addMapboxPolygon(map, polygon, {
-        layerId,
-        color,
-        fillOpacity: 0.3,
-        strokeColor: color,
-        strokeWidth: 2,
-      });
+        addMapboxPolygon(map, polygon, {
+          layerId,
+          color,
+          fillOpacity: 0.25,
+          strokeColor: color,
+          strokeWidth: 3,
+        });
 
-      regionLayersRef.current.push(layerId);
+        regionLayersRef.current.push(layerId);
+        registerMapboxLayer(map, `region${regionKey}`, layerId);
 
-      // Add click handler for region
-      map.on('click', layerId, (e) => {
-        if (e.originalEvent) {
-          e.originalEvent.stopPropagation();
-        }
-        const popup = new (require('mapbox-gl')).Popup({ offset: 24 });
-        popup.setHTML(`
+        // Add click handler for region
+        map.on('click', layerId, (e) => {
+          if (e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
+          
+          const Mapbox = require('mapbox-gl').default;
+          const popup = new Mapbox.Popup({ 
+            offset: 24,
+            closeOnClick: false,
+            closeButton: true,
+          });
+          
+          const metrics = regionData.metrics || {};
+          const wq = metrics.waterQuality || {};
+          const pol = metrics.pollution || {};
+          const bio = metrics.biodiversity || {};
+          const reef = metrics.reefHealth || {};
+
+          popup.setHTML(`
+            <div style="width:380px;font-family:'Figtree',sans-serif;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);overflow:hidden;padding:18px;">
+              <h3 style="margin:0 0 14px;font-size:20px;font-weight:600;color:#222;">🌊 ${regionKey.toUpperCase()} Region</h3>
+              
+              <div style="margin-bottom:16px;padding:12px;background:${color}15;border-radius:8px;border-left:4px solid ${color};">
+                <div style="font-size:14px;color:#666;margin-bottom:4px;">Overall Health Score</div>
+                <div style="font-size:28px;font-weight:700;color:${color};">
+                  ${score}/100
+                </div>
+                <div style="font-size:12px;color:#666;margin-top:4px;text-transform:uppercase;">
+                  ${regionData.prediction.riskLevel} Risk
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                <div style="padding:10px;background:#f0f9ff;border-radius:6px;">
+                  <div style="font-size:11px;color:#666;margin-bottom:4px;">Water Quality</div>
+                  <div style="font-size:18px;font-weight:600;color:#0284c7;">
+                    ${wq.score || 0}/100
+                  </div>
+                </div>
+                <div style="padding:10px;background:#fef2f2;border-radius:6px;">
+                  <div style="font-size:11px;color:#666;margin-bottom:4px;">Pollution Index</div>
+                  <div style="font-size:18px;font-weight:600;color:${pol.overallIndex < 30 ? '#059669' : pol.overallIndex < 50 ? '#d97706' : '#dc2626'};">
+                    ${pol.overallIndex || 0}/100
+                  </div>
+                </div>
+                <div style="padding:10px;background:#f0fdf4;border-radius:6px;">
+                  <div style="font-size:11px;color:#666;margin-bottom:4px;">Biodiversity</div>
+                  <div style="font-size:18px;font-weight:600;color:#16a34a;">
+                    ${bio.biodiversityIndex || 0}/100
+                  </div>
+                </div>
+                <div style="padding:10px;background:#faf5ff;border-radius:6px;">
+                  <div style="font-size:11px;color:#666;margin-bottom:4px;">Reef Health</div>
+                  <div style="font-size:18px;font-weight:600;color:#9333ea;">
+                    ${reef.healthIndex || 0}/100
+                  </div>
+                </div>
+              </div>
+
+              <div style="border-top:1px solid #eee;padding-top:14px;margin-top:14px;">
+                <div style="font-size:13px;font-weight:600;color:#222;margin-bottom:10px;">Key Parameters</div>
+                <div style="space-y:6px;font-size:12px;">
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">Sea Surface Temp:</span>
+                    <span style="font-weight:600;">${regionData.rawData.sst.toFixed(1)}°C</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">pH:</span>
+                    <span style="font-weight:600;">${(regionData.rawData.ph || 8.1).toFixed(2)}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">Dissolved O₂:</span>
+                    <span style="font-weight:600;">${(regionData.rawData.dissolvedOxygen || 0).toFixed(1)} mg/L</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">Turbidity:</span>
+                    <span style="font-weight:600;">${(regionData.rawData.turbidity || 0).toFixed(2)} NTU</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">Chlorophyll:</span>
+                    <span style="font-weight:600;">${(regionData.rawData.chlorophyll || 0).toFixed(2)} mg/m³</span>
+                  </div>
+                  ${regionData.rawData.dhw !== undefined ? `
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#666;">Degree Heating Weeks:</span>
+                    <span style="font-weight:600;">${regionData.rawData.dhw.toFixed(1)}</span>
+                  </div>
+                  ` : ''}
+                  ${reef.bleachingRisk ? `
+                  <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #eee;">
+                    <span style="color:#666;">Bleaching Risk:</span>
+                    <span style="font-weight:600;text-transform:uppercase;color:${getRiskColor(reef.bleachingRisk)};">
+                      ${reef.bleachingRisk}
+                    </span>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#666;">
+                ${regionData.prediction.explanation}
+              </div>
+            </div>
+          `);
+          
+          popup.setLngLat(e.lngLat).addTo(map);
+        });
+
+        // Add center marker with popup
+        const centerPopupHTML = `
           <div style="width:320px;font-family:'Figtree',sans-serif;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);overflow:hidden;padding:16px;">
             <h3 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#222;">🌊 ${regionKey.toUpperCase()} Region</h3>
             <div style="space-y:8px;font-size:14px;">
               <div>
                 <span style="font-weight:600;">Health Score:</span>{' '}
                 <span style="font-weight:700;color:${color};">
-                  ${score.toFixed(0)}/100
+                  ${score}/100
                 </span>
               </div>
               <div>
@@ -151,81 +285,117 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
                   ${regionData.prediction.riskLevel}
                 </span>
               </div>
-              <div>
-                <span style="font-weight:600;">SST:</span>{' '}
-                ${regionData.rawData.sst.toFixed(1)}°C
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#666;">
+                Click region polygon for detailed metrics
               </div>
-              ${regionData.rawData.turbidity !== undefined ? `
-              <div>
-                <span style="font-weight:600;">Turbidity:</span>{' '}
-                ${regionData.rawData.turbidity.toFixed(2)}
-              </div>
-              ` : ''}
-              ${regionData.rawData.ph !== undefined ? `
-              <div>
-                <span style="font-weight:600;">pH:</span>{' '}
-                ${regionData.rawData.ph.toFixed(2)}
-              </div>
-              ` : ''}
-              ${regionData.rawData.dissolvedOxygen !== undefined ? `
-              <div>
-                <span style="font-weight:600;">Dissolved O₂:</span>{' '}
-                ${regionData.rawData.dissolvedOxygen.toFixed(1)} mg/L
-              </div>
-              ` : ''}
-              ${regionData.rawData.pollutionIndex !== undefined ? `
-              <div>
-                <span style="font-weight:600;">Pollution Index:</span>{' '}
-                ${regionData.rawData.pollutionIndex.toFixed(1)}
-              </div>
-              ` : ''}
             </div>
           </div>
-        `);
-        popup.setLngLat(e.lngLat).addTo(map);
-      });
+        `;
+
+        const marker = addMapboxMarker(
+          map,
+          [regionData.location.lon, regionData.location.lat],
+          {
+            color,
+            size: 20,
+          },
+          centerPopupHTML
+        );
+        regionMarkersRef.current.push(marker);
+      } catch (error) {
+        console.error(`Error adding region ${regionKey}:`, error);
+      }
     });
   };
 
   const updateMarker = (map: MapboxMap) => {
-    if (!prediction) return;
+    if (!prediction || !map.loaded() || !map.getContainer()) {
+      if (!map.loaded()) {
+        map.once('load', () => {
+          if (mapRef.current && prediction) {
+            updateMarker(mapRef.current);
+          }
+        });
+      }
+      return;
+    }
 
     if (markerRef.current) {
       markerRef.current.remove();
     }
 
     const color = getRiskColor(prediction.prediction.riskLevel);
+    const metrics = prediction.metrics || {};
+    const wq = metrics.waterQuality || {};
+    const pol = metrics.pollution || {};
+    const bio = metrics.biodiversity || {};
+    const reef = metrics.reefHealth || {};
+
     const popupHTML = `
-      <div style="width:320px;font-family:'Figtree',sans-serif;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);overflow:hidden;padding:16px;">
-        <h3 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#222;">🌊 Ocean Health</h3>
-        <div style="space-y:8px;font-size:14px;">
-          <div>
-            <span style="font-weight:600;">Health Score:</span>{' '}
-            <span style="font-weight:700;color:${color};">
-              ${prediction.prediction.score}/100
-            </span>
+      <div style="width:360px;font-family:'Figtree',sans-serif;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);overflow:hidden;padding:18px;">
+        <h3 style="margin:0 0 14px;font-size:20px;font-weight:600;color:#222;">🌊 Ocean Health Assessment</h3>
+        
+        <div style="margin-bottom:16px;padding:12px;background:${color}15;border-radius:8px;border-left:4px solid ${color};">
+          <div style="font-size:14px;color:#666;margin-bottom:4px;">Overall Health Score</div>
+          <div style="font-size:32px;font-weight:700;color:${color};">
+            ${prediction.prediction.score}/100
           </div>
-          <div>
-            <span style="font-weight:600;">Risk Level:</span>{' '}
-            <span style="text-transform:uppercase;color:${color};">
-              ${prediction.prediction.riskLevel}
-            </span>
+          <div style="font-size:12px;color:#666;margin-top:4px;text-transform:uppercase;">
+            ${prediction.prediction.riskLevel} Risk
           </div>
-          <div>
-            <span style="font-weight:600;">SST:</span>{' '}
-            ${prediction.rawData.sst.toFixed(1)}°C
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div style="padding:10px;background:#f0f9ff;border-radius:6px;">
+            <div style="font-size:11px;color:#666;">Water Quality</div>
+            <div style="font-size:20px;font-weight:600;color:#0284c7;">${wq.score || 0}/100</div>
           </div>
-          <div>
-            <span style="font-weight:600;">HotSpot:</span>{' '}
-            ${prediction.rawData.hotspot.toFixed(1)}
+          <div style="padding:10px;background:#fef2f2;border-radius:6px;">
+            <div style="font-size:11px;color:#666;">Pollution</div>
+            <div style="font-size:20px;font-weight:600;color:${pol.overallIndex < 30 ? '#059669' : '#dc2626'};">
+              ${pol.overallIndex || 0}/100
+            </div>
           </div>
-          <div>
-            <span style="font-weight:600;">DHW:</span>{' '}
-            ${prediction.rawData.dhw.toFixed(1)}
+          <div style="padding:10px;background:#f0fdf4;border-radius:6px;">
+            <div style="font-size:11px;color:#666;">Biodiversity</div>
+            <div style="font-size:20px;font-weight:600;color:#16a34a;">${bio.biodiversityIndex || 0}/100</div>
           </div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#666;">
-            ${prediction.prediction.explanation}
+          <div style="padding:10px;background:#faf5ff;border-radius:6px;">
+            <div style="font-size:11px;color:#666;">Reef Health</div>
+            <div style="font-size:20px;font-weight:600;color:#9333ea;">${reef.healthIndex || 0}/100</div>
           </div>
+        </div>
+
+        <div style="border-top:1px solid #eee;padding-top:14px;margin-top:14px;">
+          <div style="font-size:13px;font-weight:600;color:#222;margin-bottom:10px;">Key Metrics</div>
+          <div style="space-y:6px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#666;">SST:</span>
+              <span style="font-weight:600;">${prediction.rawData.sst.toFixed(1)}°C</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#666;">pH:</span>
+              <span style="font-weight:600;">${(prediction.rawData.ph || 8.1).toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#666;">Dissolved O₂:</span>
+              <span style="font-weight:600;">${(prediction.rawData.dissolvedOxygen || 0).toFixed(1)} mg/L</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#666;">Turbidity:</span>
+              <span style="font-weight:600;">${(prediction.rawData.turbidity || 0).toFixed(2)} NTU</span>
+            </div>
+            ${prediction.rawData.dhw !== undefined ? `
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#666;">DHW:</span>
+              <span style="font-weight:600;">${prediction.rawData.dhw.toFixed(1)}</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee;font-size:12px;color:#666;">
+          ${prediction.prediction.explanation}
         </div>
       </div>
     `;
@@ -235,7 +405,7 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
       [lng, lat],
       {
         color,
-        size: 22,
+        size: 24,
       },
       popupHTML
     );
@@ -278,7 +448,7 @@ export default function OceanHealthMap({ lat = -20.2, lng = 57.5 }: OceanHealthM
   if (loading) {
     return (
       <div className="w-full h-[650px] min-h-[650px] md:h-[75vh] bg-gray-100 rounded-lg flex items-center justify-center">
-        <div className="text-gray-600">Loading ocean health prediction...</div>
+        <div className="text-gray-600">Loading ocean health data...</div>
       </div>
     );
   }

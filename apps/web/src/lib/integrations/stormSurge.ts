@@ -38,8 +38,10 @@ export class StormSurgeService {
       
       // Add daily parameters separately (multi-value)
       params.append('daily', 'wave_height_max');
-      params.append('daily', 'wind_speed_max');
       params.append('daily', 'swell_significant_height');
+      
+      // Add hourly parameters for wind speed (wind_speed_max is not available as daily)
+      params.append('hourly', 'wind_speed_10m');
       
       const url = `${this.baseUrl}?${params.toString()}`;
 
@@ -75,20 +77,29 @@ export class StormSurgeService {
       const daily = data.daily;
 
       // Get today's data (index 0)
-      // Note: wind_speed_max is in m/s, convert to km/h
       const waveHeightMax = daily.wave_height_max?.[0] || 0;
-      const windSpeedMaxMs = daily.wind_speed_max?.[0] || 0;
+      
+      // Get wind speed from hourly data (calculate max from first 24 hours)
+      let windSpeedMaxMs = 0;
+      if (data.hourly?.wind_speed_10m && data.hourly.wind_speed_10m.length > 0) {
+        // Get max wind speed from first 24 hours (today)
+        const hourlyWind = data.hourly.wind_speed_10m.slice(0, 24);
+        windSpeedMaxMs = Math.max(...hourlyWind.filter((v: number) => v != null));
+      }
       const windSpeedMax = windSpeedMaxMs * 3.6; // Convert m/s to km/h
       
-      // Try to get swell from hourly data if available, otherwise use 0
+      // Try to get swell from daily data first, then hourly if available
       let swellHeight = 0;
-      if (data.hourly?.swell_wave_height) {
+      if (daily.swell_significant_height && daily.swell_significant_height[0] != null) {
+        swellHeight = daily.swell_significant_height[0];
+      } else if (data.hourly?.swell_wave_height) {
         // Get average of first 24 hours (today)
         const hourlySwell = data.hourly.swell_wave_height.slice(0, 24);
-        const sum = hourlySwell.reduce((acc: number, val: number) => acc + (val || 0), 0);
-        swellHeight = sum / hourlySwell.length;
-      } else if (daily.swell_significant_height) {
-        swellHeight = daily.swell_significant_height[0] || 0;
+        const validSwell = hourlySwell.filter((v: number) => v != null);
+        if (validSwell.length > 0) {
+          const sum = validSwell.reduce((acc: number, val: number) => acc + val, 0);
+          swellHeight = sum / validSwell.length;
+        }
       }
 
       // Calculate storm surge risk score

@@ -34,11 +34,19 @@ export default function CoastalRiskWidget({
   async function fetchCoastalRisk() {
     try {
       setLoading(true);
-      // Fetch from ocean-health API which aggregates all data sources
-      const response = await fetch(`/api/ocean-health?lat=${location[0]}&lng=${location[1]}`);
+      // Fetch from oceanhealth API which aggregates all data sources
+      const response = await fetch(`/api/oceanhealth?lat=${location[0]}&lng=${location[1]}`);
       if (response.ok) {
         const data = await response.json();
-        const oceanHealth = data.oceanHealth;
+        const oceanHealth = data.metrics || {};
+        
+        // If metrics not available, try to get from rawData
+        if (!oceanHealth.waterQuality && data.rawData) {
+          oceanHealth.waterQuality = {
+            turbidity: data.rawData.turbidity ?? 0.2,
+            pH: data.rawData.ph ?? 8.1,
+          };
+        }
         
         // Also fetch marine data for wave/wind info
         const marineResponse = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${location[0]}&longitude=${location[1]}&daily=wave_height_max,wind_speed_max,swell_significant_height&timezone=auto`);
@@ -66,8 +74,8 @@ export default function CoastalRiskWidget({
           swellHeight,
           erosionRisk,
           floodingRisk,
-          turbidity: oceanHealth.waterQuality.turbidity,
-          waterClarity: 100 - (oceanHealth.waterQuality.turbidity * 100)
+          turbidity: oceanHealth.waterQuality?.turbidity ?? 0.2,
+          waterClarity: 100 - ((oceanHealth.waterQuality?.turbidity ?? 0.2) * 100)
         });
       }
     } catch (error) {

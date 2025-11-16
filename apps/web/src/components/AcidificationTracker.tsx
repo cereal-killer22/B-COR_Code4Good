@@ -19,15 +19,22 @@ export default function AcidificationTracker() {
     try {
       setLoading(true);
       // Fetch from API route which uses real data sources
-      const response = await fetch(`/api/ocean-health?lat=${location[0]}&lng=${location[1]}`);
+      const response = await fetch(`/api/oceanhealth?lat=${location[0]}&lng=${location[1]}`);
       if (response.ok) {
         const data = await response.json();
-        const oceanHealth = data.oceanHealth;
+        const oceanHealth = data.metrics || {};
+        
+        // If metrics not available, try to get from rawData
+        if (!oceanHealth.waterQuality && data.rawData) {
+          oceanHealth.waterQuality = {
+            pH: data.rawData.ph ?? 8.1,
+          };
+        }
         
         // Calculate acidification metrics from real pH data
         // Note: pH from free APIs is limited, using default with trend estimation
         const basePH = 8.1; // Pre-industrial baseline
-        const currentPH = oceanHealth.waterQuality.pH || 8.1;
+        const currentPH = oceanHealth.waterQuality?.pH ?? data.rawData?.ph ?? 8.1;
         const pHAnomaly = currentPH - basePH;
         
         // Estimate aragonite saturation from pH (simplified relationship)
