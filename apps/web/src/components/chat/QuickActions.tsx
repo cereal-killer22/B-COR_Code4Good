@@ -54,7 +54,10 @@ interface QuickActionsProps {
 export default function QuickActions({ onActionClick, disabled = false }: QuickActionsProps) {
   return (
     <div className="space-y-3" role="region" aria-label="Quick action buttons">
-      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
+      <p 
+        className="text-xs uppercase tracking-wider text-center"
+        style={{ color: 'var(--foreground-secondary)' }}
+      >
         Quick Actions
       </p>
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
@@ -63,17 +66,32 @@ export default function QuickActions({ onActionClick, disabled = false }: QuickA
             key={action.id}
             onClick={() => !disabled && onActionClick(action.question)}
             disabled={disabled}
-            className="
-              flex-shrink-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700
-              bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700
-              transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed
-              focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-600
-              text-left
-            "
+            className="flex-shrink-0 px-3 py-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 text-left"
+            style={{
+              borderColor: 'var(--card-border)',
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--foreground)',
+            }}
+            onMouseEnter={(e) => {
+              if (!disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--card-hover, var(--background-secondary))';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--card-background)';
+              }
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = '2px solid var(--focus-ring, var(--primary, #3b82f6))';
+              e.currentTarget.style.outlineOffset = '2px';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none';
+            }}
             aria-label={`Ask: ${action.question}`}
           >
-            <span className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
+            <span className="text-xs whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
               {action.question}
             </span>
           </button>

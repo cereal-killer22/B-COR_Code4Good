@@ -324,7 +324,7 @@ export default function UserProfile({ user }: { user: User }) {
                   onChange={(e) => setPreferences({ ...preferences, telegram_enabled: e.target.checked })}
                   className="mr-2"
                 />
-                <span>✈️ Telegram Notifications</span>
+                <span>📻 Radio Broadcast</span>
               </label>
             </div>
           </div>

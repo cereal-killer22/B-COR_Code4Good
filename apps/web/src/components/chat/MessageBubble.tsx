@@ -39,7 +39,10 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
         {/* Avatar */}
         {!isUser && (
           <div 
-            className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-base flex-shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+            style={{
+              backgroundColor: 'var(--background-secondary)',
+            }}
             role="img"
             aria-label="ClimaWise avatar"
           >
@@ -49,13 +52,12 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
         
         {/* Message Bubble */}
         <div
-          className={`
-            px-4 py-3 rounded-xl
-            ${isUser
-              ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
-            }
-          `}
+          className="px-4 py-3 rounded-xl"
+          style={{
+            backgroundColor: isUser ? 'var(--primary, #3b82f6)' : 'var(--card-background)',
+            color: isUser ? '#ffffff' : 'var(--foreground)',
+            border: isUser ? 'none' : '1px solid var(--card-border)',
+          }}
           role="group"
         >
           {/* Message Content */}
@@ -64,7 +66,10 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
               i % 2 === 1 ? (
                 <strong 
                   key={i} 
-                  className={isUser ? 'font-semibold' : 'font-semibold text-gray-900 dark:text-gray-100'}
+                  className="font-semibold"
+                  style={{
+                    color: isUser ? '#ffffff' : 'var(--foreground)',
+                  }}
                 >
                   {part}
                 </strong>
@@ -76,10 +81,10 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
           
           {/* Timestamp */}
           <div
-            className={`
-              text-xs mt-2
-              ${isUser ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}
-            `}
+            className="text-xs mt-2"
+            style={{
+              color: isUser ? 'rgba(255, 255, 255, 0.7)' : 'var(--foreground-secondary)',
+            }}
             aria-label={`Sent at ${formattedTime}`}
           >
             <time dateTime={timestamp}>{formattedTime}</time>
@@ -89,7 +94,10 @@ export default function MessageBubble({ message, isUser, timestamp }: MessageBub
         {/* User Avatar */}
         {isUser && (
           <div 
-            className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-base flex-shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+            style={{
+              backgroundColor: 'var(--background-secondary)',
+            }}
             role="img"
             aria-label="Your avatar"
           >

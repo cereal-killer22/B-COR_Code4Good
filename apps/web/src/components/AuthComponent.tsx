@@ -81,7 +81,7 @@ export default function AuthComponent({ onAuthSuccess }: AuthComponentProps) {
       />
 
       <div className="mt-6 text-center text-sm text-gray-600">
-        <div className="mb-2">📱 SMS Alerts • ✈️ Telegram • 📧 Email</div>
+        <div className="mb-2">📱 SMS Alerts • 📻 Radio Broadcast • 📧 Email</div>
         <div className="text-xs">
           By signing up, you agree to receive climate alerts and emergency notifications.
         </div>

@@ -433,6 +433,13 @@ textarea:focus-visible {
   border-radius: 0.375rem;
 }
 
+/* Placeholder styles for inputs and textareas */
+input::placeholder,
+textarea::placeholder {
+  color: var(--foreground-secondary);
+  opacity: 0.7;
+}
+
 [data-theme="dark"] button:focus-visible,
 [data-theme="dark"] a:focus-visible,
 [data-theme="dark"] input:focus-visible,

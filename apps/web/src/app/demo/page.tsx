@@ -123,9 +123,9 @@ export default function DemoPage() {
                 <div className="text-sm text-gray-600">Immediate alerts</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl mb-2">✈️</div>
-                <div className="font-semibold">Telegram</div>
-                <div className="text-sm text-gray-600">Rich notifications</div>
+                <div className="text-2xl mb-2">📻</div>
+                <div className="font-semibold">Radio Broadcast</div>
+                <div className="text-sm text-gray-600">Public announcements</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl mb-2">📧</div>
